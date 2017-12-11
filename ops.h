@@ -21,3 +21,4 @@ void write_register_pair(State& state, std::string& register_name, std::uint16_t
 
 std::pair<std::uint16_t, std::uint16_t> LD(State& state, Instruction& instruction, std::uint8_t* code);
 std::pair<std::uint16_t, std::uint16_t> LDH(State& state, Instruction& instruction, std::uint8_t* code);
+std::pair<std::uint16_t, std::uint16_t> POP(State& state, Instruction& instruction, std::uint8_t* code);

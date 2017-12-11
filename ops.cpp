@@ -59,7 +59,7 @@ void update_flags(State& state, uint8_t* op_code,
     uint16_t num1 = operands.first, num2 = operands.second;
 
     if (op_code[0] == 0xcb) { /* POP AF */
-        state.f = num1; 
+        state.f = num1 & 0xf0; 
 	return;
     }
 
@@ -168,5 +168,14 @@ pair<uint16_t, uint16_t> LDH(State& state, Instruction& instruction, uint8_t* co
     } else {
 	state.write_memory(addr, state.a);
     }
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint8_t low = state.read_memory(state.sp++);
+    uint8_t high = state.read_memory(state.sp++);
+    uint16_t value = uint8_to_uint16(high, low);
+    write_register_pair(state, instruction.operand1, value);
     return make_pair(0, 0);
 }
