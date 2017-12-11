@@ -15,7 +15,7 @@ State::~State() {
     delete this->memory;
 }
 
-uint8_t State::read_memory(uint16_t addr, uint8_t value) {
+uint8_t State::read_memory(uint16_t addr) {
     if (addr >= 0 && addr <= 0xffff) {
 	return this->memory[addr];
     } else {
