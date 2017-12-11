@@ -20,3 +20,4 @@ uint16_t read_register_pair(State& state, std::string& register_name);
 void write_register_pair(State& state, std::string& register_name, std::uint16_t value);
 
 std::pair<std::uint16_t, std::uint16_t> LD(State& state, Instruction& instruction, std::uint8_t* code);
+std::pair<std::uint16_t, std::uint16_t> LDH(State& state, Instruction& instruction, std::uint8_t* code);

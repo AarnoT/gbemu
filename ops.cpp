@@ -159,3 +159,14 @@ pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* cod
 
     return make_pair(num1, num2);
 }
+
+pair<uint16_t, uint16_t> LDH(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t addr = uint8_to_uint16(0xff, code[1]);
+    if (instruction.operand1.compare("A") == 0) {
+        state.a = state.read_memory(addr);
+    } else {
+	state.write_memory(addr, state.a);
+    }
+    return make_pair(0, 0);
+}
