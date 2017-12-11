@@ -23,3 +23,5 @@ std::pair<std::uint16_t, std::uint16_t> LD(State& state, Instruction& instructio
 std::pair<std::uint16_t, std::uint16_t> LDH(State& state, Instruction& instruction, std::uint8_t* code);
 std::pair<std::uint16_t, std::uint16_t> POP(State& state, Instruction& instruction, std::uint8_t* code);
 std::pair<std::uint16_t, std::uint16_t> PUSH(State& state, Instruction& instruction, std::uint8_t* code);
+std::pair<std::uint16_t, std::uint16_t> INC(State& state, Instruction& instruction, std::uint8_t* code);
+std::pair<std::uint16_t, std::uint16_t> DEC(State& state, Instruction& instruction, std::uint8_t* code);

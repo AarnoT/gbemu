@@ -187,3 +187,43 @@ pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, uint8_t* c
     state.write_memory(state.sp--, value & 0xff);
     return make_pair(0, 0);
 }
+
+pair<uint16_t, uint16_t> INC(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = 0, num2 = 1;
+    if (state.registers.find(instruction.operand1) != state.registers.end()) {
+	num1 = *state.registers[instruction.operand1];
+	(*state.registers[instruction.operand1])++;
+    } else if (state.register_pairs.find(instruction.operand1) != state.register_pairs.end()) {
+	uint16_t value = read_register_pair(state, instruction.operand1);
+	write_register_pair(state, instruction.operand1, value + 1);
+    } else if (instruction.operand1.compare("SP") == 0) {
+	state.sp++;
+    } else if (instruction.operand1.compare("(HL)") == 0) {
+	uint16_t hl = read_register_pair(state, "HL");
+	uint16_t value = state.read_memory(hl);
+	state.write_memory(hl, value + 1);
+	num1 = value;
+    }
+    return make_pair(num1, num2);
+}
+
+pair<uint16_t, uint16_t> DEC(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = 0, num2 = 1;
+    if (state.registers.find(instruction.operand1) != state.registers.end()) {
+	num1 = *state.registers[instruction.operand1];
+	(*state.registers[instruction.operand1])--;
+    } else if (state.register_pairs.find(instruction.operand1) != state.register_pairs.end()) {
+	uint16_t value = read_register_pair(state, instruction.operand1);
+	write_register_pair(state, instruction.operand1, value - 1);
+    } else if (instruction.operand1.compare("SP") == 0) {
+	state.sp--;
+    } else if (instruction.operand1.compare("(HL)") == 0) {
+	uint16_t hl = read_register_pair(state, "HL");
+	uint16_t value = state.read_memory(hl);
+	state.write_memory(hl, value - 1);
+	num1 = value;
+    }
+    return make_pair(num1, num2);
+}
