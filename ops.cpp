@@ -77,3 +77,20 @@ void update_flags(State& state, uint8_t* op_code,
         update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, half_carry_bit, state.f));
     }
 }
+
+uint16_t uint8_to_uint16(uint8_t high, uint8_t low)
+{
+    return high << 8 | low;
+}
+
+uint16_t read_register_pair(State& state, string& register_name)
+{
+    auto& register_pair = state.register_pairs[register_name];
+    return uint8_to_uint16(*register_pair.first, *register_pair.second);
+}
+
+void write_register_pair(State& state, string& register_name, uint16_t value)
+{
+    *state.register_pairs[register_name].first = value >> 8 & 0xff;
+    *state.register_pairs[register_name].second = value & 0xff;
+}
