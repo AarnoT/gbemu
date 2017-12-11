@@ -179,3 +179,11 @@ pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* co
     write_register_pair(state, instruction.operand1, value);
     return make_pair(0, 0);
 }
+
+pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t value = read_register_pair(state, instruction.operand1);
+    state.write_memory(state.sp--, value >> 8 & 0xff);
+    state.write_memory(state.sp--, value & 0xff);
+    return make_pair(0, 0);
+}
