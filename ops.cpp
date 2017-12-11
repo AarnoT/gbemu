@@ -16,6 +16,7 @@ using std::int8_t;
 using std::int16_t;
 using std::int32_t;
 using std::int64_t;
+using std::make_pair;
 using std::map;
 using std::pair;
 using std::string;
@@ -83,14 +84,78 @@ uint16_t uint8_to_uint16(uint8_t high, uint8_t low)
     return high << 8 | low;
 }
 
-uint16_t read_register_pair(State& state, string& register_name)
+uint16_t read_register_pair(State& state, const string& register_name)
 {
     auto& register_pair = state.register_pairs[register_name];
     return uint8_to_uint16(*register_pair.first, *register_pair.second);
 }
 
-void write_register_pair(State& state, string& register_name, uint16_t value)
+void write_register_pair(State& state, const string& register_name, uint16_t value)
 {
     *state.register_pairs[register_name].first = value >> 8 & 0xff;
     *state.register_pairs[register_name].second = value & 0xff;
+}
+
+pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t value = 0, num1 = 0, num2 = 0;
+    if (state.registers.find(instruction.operand2) != state.registers.end()) {
+	value = *state.registers[instruction.operand2];
+    } else if (state.register_pairs.find(instruction.operand2) != state.register_pairs.end()) {
+	value = read_register_pair(state, instruction.operand2);
+    } else if (instruction.operand2.compare("d8") == 0) {
+	value = code[1];
+    } else if (instruction.operand2.compare("d16") == 0) {
+	value = uint8_to_uint16(code[2], code[1]);
+    } else if (instruction.operand2.compare("SP") == 0) {
+	value = state.sp;
+    } else if (instruction.operand2.compare("SP+r8") == 0) {
+	value = state.sp + (int8_t) code[1];
+	num1 = state.sp;
+	num2 = code[1] & 0x7f;
+    } else if (instruction.operand2.front() == '(' && instruction.operand2.back() == ')') {
+	string location = instruction.operand2.substr(1, instruction.operand2.size() - 2);
+	uint16_t addr = 0;
+	if (state.register_pairs.find(location) != state.register_pairs.end()) {
+	    addr = read_register_pair(state, instruction.operand2);
+	} else if (location.compare("HL+") == 0) {
+	    addr = read_register_pair(state, instruction.operand2);
+	    write_register_pair(state, "HL", read_register_pair(state, "HL") + 1);
+	} else if (location.compare("HL-") == 0) {
+	    addr = read_register_pair(state, instruction.operand2);
+	    write_register_pair(state, "HL", read_register_pair(state, "HL") - 1);
+	} else if (location.compare("a16") == 0) {
+	    addr = uint8_to_uint16(code[2], code[1]);
+	} else if (location.compare("C") == 0) {
+	    addr = uint8_to_uint16(0xff, state.c);
+	}
+	value = state.read_memory(addr);
+    }
+
+    if (state.registers.find(instruction.operand1) != state.registers.end()) {
+	*state.registers[instruction.operand1] = value;
+    } else if (state.register_pairs.find(instruction.operand1) != state.register_pairs.end()) {
+	write_register_pair(state, instruction.operand1, value);
+    } else if (instruction.operand1.compare("SP") == 0) {
+	state.sp = value;
+    } else if (instruction.operand1.front() == '(' && instruction.operand1.back() == ')') {
+	string location = instruction.operand1.substr(1, instruction.operand1.size() - 2);
+	uint16_t addr = 0;
+	if (state.register_pairs.find(location) != state.register_pairs.end()) {
+	    addr = read_register_pair(state, instruction.operand1);
+	} else if (location.compare("HL+") == 0) {
+	    addr = read_register_pair(state, instruction.operand1);
+	    write_register_pair(state, "HL", read_register_pair(state, "HL") + 1);
+	} else if (location.compare("HL-") == 0) {
+	    addr = read_register_pair(state, instruction.operand1);
+	    write_register_pair(state, "HL", read_register_pair(state, "HL") - 1);
+	} else if (location.compare("a16") == 0) {
+	    addr = uint8_to_uint16(code[2], code[1]);
+	} else if (location.compare("C") == 0) {
+	    addr = uint8_to_uint16(0xff, state.c);
+	}
+	state.write_memory(addr, value);
+    }
+
+    return make_pair(num1, num2);
 }
