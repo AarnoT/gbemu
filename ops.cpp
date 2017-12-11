@@ -227,3 +227,16 @@ pair<uint16_t, uint16_t> DEC(State& state, Instruction& instruction, uint8_t* co
     }
     return make_pair(num1, num2);
 }
+
+pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a, num2 = 0;
+    if (state.f & FLAG_C || ((state.f & FLAG_N) == 0 && state.a > 0x99)) {
+	num2 += 0x60;
+    }
+    if (state.f & FLAG_H || ((state.f & FLAG_N) == 0 && (state.a & 0xf) > 0x9)) {
+	num2 += 6;
+    }
+    state.a += state.f & FLAG_N ? -num2 : num2;
+    return make_pair(num1, num2);
+}
