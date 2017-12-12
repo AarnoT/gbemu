@@ -96,6 +96,20 @@ void write_register_pair(State& state, const string& register_name, uint16_t val
     *state.register_pairs[register_name].second = value & 0xff;
 }
 
+uint8_t read_8bit_operand(State& state, const string& operand_name, uint8_t* code)
+{
+    uint8_t value = 0;
+    if (state.registers.find(operand_name) != state.registers.end()) {
+	value = *state.registers[operand_name];
+    } else if (operand_name.compare("(HL)") == 0) {
+	uint16_t hl = read_register_pair(state, "HL");
+	value = state.read_memory(hl);
+    } else if (operand_name.compare("d8") == 0) {
+	value = code[1];
+    }
+    return value;
+}
+
 pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* code)
 {
     uint16_t value = 0, num1 = 0, num2 = 0;
@@ -245,4 +259,83 @@ pair<uint16_t, uint16_t> CPL(State& state, Instruction& instruction, uint8_t* co
 {
     state.a = ~state.a;
     return make_pair(state.a, 0);
+}
+
+pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = 0, num2 = 0;
+    if (state.register_pairs.find(instruction.operand2) != state.register_pairs.end()) {
+	num2 = read_register_pair(state, instruction.operand2);
+    } else if (instruction.operand2.compare("SP") == 0) {
+        num2 = state.sp;
+    } else {
+	num2 = read_8bit_operand(state, instruction.operand2, code);
+    }
+
+    if (instruction.operand1.compare("HL") == 0) {
+	num1 = read_register_pair(state, "HL");
+	write_register_pair(state, "HL", num1 + num2);
+    } else {
+	num1 = state.a;
+	state.a += num2;
+    }
+
+    return make_pair(num1, num2);
+}
+
+pair<uint16_t, uint16_t> ADC(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a;
+    uint16_t num2 = read_8bit_operand(state, instruction.operand2, code);
+    num2 += state.f & FLAG_C ? 1 : 0;
+    state.a += num2;
+    return make_pair(num1, num2);
+}
+
+pair<uint16_t, uint16_t> SUB(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a;
+    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    state.a -= num2;
+    return make_pair(num1, num2);
+}
+
+pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a;
+    uint16_t num2 = read_8bit_operand(state, instruction.operand2, code);
+    num2 += state.f & FLAG_C ? 1 : 0;
+    state.a -= num2;
+    return make_pair(num1, num2);
+}
+
+pair<uint16_t, uint16_t> AND(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a;
+    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    state.a &= num2;
+    return make_pair(state.a, 0);
+}
+
+pair<uint16_t, uint16_t> XOR(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a;
+    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    state.a ^= num2;
+    return make_pair(state.a, 0);
+}
+
+pair<uint16_t, uint16_t> OR(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a;
+    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    state.a |= num2;
+    return make_pair(state.a, 0);
+}
+
+pair<uint16_t, uint16_t> CP(State& state, Instruction& instruction, uint8_t* code)
+{
+    uint16_t num1 = state.a;
+    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    return make_pair(num1, num2);
 }
