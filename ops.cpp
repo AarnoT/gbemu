@@ -240,3 +240,9 @@ pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, uint8_t* co
     state.a += state.f & FLAG_N ? -num2 : num2;
     return make_pair(num1, num2);
 }
+
+pair<uint16_t, uint16_t> CPL(State& state, Instruction& instruction, uint8_t* code)
+{
+    state.a = ~state.a;
+    return make_pair(state.a, 0);
+}
