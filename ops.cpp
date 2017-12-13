@@ -350,7 +350,11 @@ pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, uint8_t* op_
     jump = jump || check_condition(state, instruction.operand1);
 
     if (jump) {
-        state.pc = uint8_to_uint16(op_code[2], op_code[1]);
+	if (instruction.operand1 == "(HL)") {
+	    state.pc = state.read_register_pair("HL");
+	} else {
+            state.pc = uint8_to_uint16(code[2], code[1]);
+	}
     }
 }
 
