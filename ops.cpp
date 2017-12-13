@@ -171,6 +171,17 @@ void write_operand(State& state, const string& operand_name, uint8_t* op_code, u
     }
 }
 
+bool check_condition(State& state, string& condition_code)
+{
+	bool condition = false;
+	switch (condition_code.back()) {
+	case 'Z': condition = state.f & FLAG_Z != 0; break;
+	case 'C': condition = state.f & FLAG_C != 0; break;
+	}
+	if (condition_code.front() == 'N') {condition = !condition;}
+	return condition;
+}
+
 pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = 0, num2 = 0;
@@ -243,7 +254,6 @@ pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, uint8_t* op
 {
     uint16_t value = 0, num1 = 0, num2 = 0;
     num1 = read_operand(state, instruction.operand1, op_code);
-    num2 = read_operand(state, instruction.operand2, op_code);
 
     if (instruction.operand2 == "r8") {
 	value = num1 + (int8_t) num2;
@@ -312,4 +322,24 @@ pair<uint16_t, uint16_t> CP(State& state, Instruction& instruction, uint8_t* op_
     uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     return make_pair(num1, num2);
+}
+
+pair<uint16_t, uint16_t> JR(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    bool jump = instruction.operand_count == 0;
+    jump = jump || check_condition(state, instruction.operand1);
+
+    if (jump) {
+        state.pc += (int8_t) op_code[1];
+    }
+}
+
+pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    bool jump = instruction.operand_count == 1;
+    jump = jump || check_condition(state, instruction.operand1);
+
+    if (jump) {
+        state.pc = uint8_to_uint16(op_code[2], op_code[1]);
+    }
 }

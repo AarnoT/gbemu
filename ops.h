@@ -20,6 +20,7 @@ std::uint16_t read_register_pair(State& state, std::string& register_name);
 void write_register_pair(State& state, std::string& register_name, std::uint16_t value);
 std::uint16_t read_operand(State& state, const std::string& operand_name, std::uint8_t* op_code);
 void write_operand(State& state, const std::string& operand_name, std::uint8_t* op_code, std::uint16_t value);
+bool check_condition(State& state, std::string& condition_code);
 
 std::pair<std::uint16_t, std::uint16_t> LD(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> POP(State& state, Instruction& instruction, std::uint8_t* op_code);
@@ -36,3 +37,5 @@ std::pair<std::uint16_t, std::uint16_t> AND(State& state, Instruction& instructi
 std::pair<std::uint16_t, std::uint16_t> XOR(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> OR(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> CP(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> JR(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> JP(State& state, Instruction& instruction, std::uint8_t* op_code);
