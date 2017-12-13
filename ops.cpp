@@ -363,3 +363,14 @@ pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, uint8_t* op
         state.pc = pop_from_stack(state);
     }
 }
+
+pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    bool jump = instruction.operand_count == 1;
+    jump = jump || check_condition(state, instruction.operand1);
+
+    if (jump) {
+        push_onto_stack(state, state.pc);
+        state.pc = uint8_to_uint16(op_code[2], op_code[1]);
+    }
+}
