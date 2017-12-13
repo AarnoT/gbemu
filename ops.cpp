@@ -96,96 +96,96 @@ void write_register_pair(State& state, const string& register_name, uint16_t val
     *state.register_pairs[register_name].second = value & 0xff;
 }
 
-uint8_t read_8bit_operand(State& state, const string& operand_name, uint8_t* code)
+uint16_t read_operand(State& state, const string& operand_name, uint8_t* op_code)
 {
-    uint8_t value = 0;
+    uint16_t value = 0;
     if (state.registers.find(operand_name) != state.registers.end()) {
 	value = *state.registers[operand_name];
-    } else if (operand_name.compare("(HL)") == 0) {
-	uint16_t hl = read_register_pair(state, "HL");
-	value = state.read_memory(hl);
-    } else if (operand_name.compare("d8") == 0) {
-	value = code[1];
-    }
-    return value;
-}
-
-pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* code)
-{
-    uint16_t value = 0, num1 = 0, num2 = 0;
-    if (state.registers.find(instruction.operand2) != state.registers.end()) {
-	value = *state.registers[instruction.operand2];
-    } else if (state.register_pairs.find(instruction.operand2) != state.register_pairs.end()) {
-	value = read_register_pair(state, instruction.operand2);
-    } else if (instruction.operand2.compare("d8") == 0) {
-	value = code[1];
-    } else if (instruction.operand2.compare("d16") == 0) {
-	value = uint8_to_uint16(code[2], code[1]);
-    } else if (instruction.operand2.compare("SP") == 0) {
+    } else if (state.register_pairs.find(operand_name) != state.register_pairs.end()) {
+	value = read_register_pair(state, operand_name);
+    } else if (operand_name == "d8") {
+	value = op_code[1];
+    } else if (operand_name == "d16") {
+	value = uint8_to_uint16(op_code[2], op_code[1]);
+    } else if (operand_name == "a16") {
+	value = uint8_to_uint16(op_code[2], op_code[1]);
+    } else if (operand_name == "r8") {
+	/* Needs to be converted to signed when used */
+	value = op_code[1];
+    } else if (operand_name == "SP") {
 	value = state.sp;
-    } else if (instruction.operand2.compare("SP+r8") == 0) {
-	value = state.sp + (int8_t) code[1];
-	num1 = state.sp;
-	num2 = code[1] & 0x7f;
-    } else if (instruction.operand2.front() == '(' && instruction.operand2.back() == ')') {
-	string location = instruction.operand2.substr(1, instruction.operand2.size() - 2);
+    } else if (operand_name == "SP+r8") {
+	value = state.sp + (int8_t) op_code[1];
+    } else if (operand_name.length() == 3 && operand_name[2] == 'H') {
+	sscanf(operand_name.substr(0, 2).c_str(), "%x", value);
+    } else if (operand_name.front() == '(' && operand_name.back() == ')') {
+	string location = operand_name.substr(1, operand_name.length() - 2);
 	uint16_t addr = 0;
 	if (state.register_pairs.find(location) != state.register_pairs.end()) {
-	    addr = read_register_pair(state, instruction.operand2);
-	} else if (location.compare("HL+") == 0) {
-	    addr = read_register_pair(state, instruction.operand2);
+	    addr = read_register_pair(state, operand_name);
+	} else if (location == "HL+") {
+	    addr = read_register_pair(state, operand_name);
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") + 1);
-	} else if (location.compare("HL-") == 0) {
-	    addr = read_register_pair(state, instruction.operand2);
+	} else if (location == "HL-") {
+	    addr = read_register_pair(state, operand_name);
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") - 1);
-	} else if (location.compare("a16") == 0) {
-	    addr = uint8_to_uint16(code[2], code[1]);
-	} else if (location.compare("C") == 0) {
+	} else if (location == "a8") {
+	    addr = uint8_to_uint16(0xff, op_code[1]);
+	} else if (location == "a16") {
+	    addr = uint8_to_uint16(op_code[2], op_code[1]);
+	} else if (location == "C") {
 	    addr = uint8_to_uint16(0xff, state.c);
 	}
 	value = state.read_memory(addr);
     }
+    return value;
+}
 
-    if (state.registers.find(instruction.operand1) != state.registers.end()) {
-	*state.registers[instruction.operand1] = value;
-    } else if (state.register_pairs.find(instruction.operand1) != state.register_pairs.end()) {
-	write_register_pair(state, instruction.operand1, value);
-    } else if (instruction.operand1.compare("SP") == 0) {
+void write_operand(State& state, const string& operand_name, uint8_t* op_code, uint16_t value)
+{
+    if (state.registers.find(operand_name) != state.registers.end()) {
+	*state.registers[operand_name] = value;
+    } else if (state.register_pairs.find(operand_name) != state.register_pairs.end()) {
+	write_register_pair(state, operand_name, value);
+    } else if (operand_name == "SP") {
 	state.sp = value;
-    } else if (instruction.operand1.front() == '(' && instruction.operand1.back() == ')') {
-	string location = instruction.operand1.substr(1, instruction.operand1.size() - 2);
+    } else if (operand_name.front() == '(' && operand_name.back() == ')') {
+	string location = operand_name.substr(1, operand_name.size() - 2);
 	uint16_t addr = 0;
 	if (state.register_pairs.find(location) != state.register_pairs.end()) {
-	    addr = read_register_pair(state, instruction.operand1);
-	} else if (location.compare("HL+") == 0) {
-	    addr = read_register_pair(state, instruction.operand1);
+	    addr = read_register_pair(state, operand_name);
+	} else if (location == "HL+") {
+	    addr = read_register_pair(state, operand_name);
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") + 1);
-	} else if (location.compare("HL-") == 0) {
-	    addr = read_register_pair(state, instruction.operand1);
+	} else if (location == "HL-") {
+	    addr = read_register_pair(state, operand_name);
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") - 1);
-	} else if (location.compare("a16") == 0) {
-	    addr = uint8_to_uint16(code[2], code[1]);
-	} else if (location.compare("C") == 0) {
+	} else if (location == "a8") {
+	    addr = uint8_to_uint16(0xff, op_code[1]);
+	} else if (location == "a16") {
+	    addr = uint8_to_uint16(op_code[2], op_code[1]);
+	} else if (location == "C") {
 	    addr = uint8_to_uint16(0xff, state.c);
 	}
 	state.write_memory(addr, value);
+    }
+}
+
+pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint16_t num1 = 0, num2 = 0;
+    uint16_t value = read_operand(state, instruction.operand2, op_code);
+    write_operand(state, instruction.operand1, op_code, value);
+
+    if (instruction.operand2.compare("SP+r8") == 0) {
+	num1 = state.sp;
+	num2 = op_code[1] & 0x7f;
     }
 
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> LDH(State& state, Instruction& instruction, uint8_t* code)
-{
-    uint16_t addr = uint8_to_uint16(0xff, code[1]);
-    if (instruction.operand1.compare("A") == 0) {
-        state.a = state.read_memory(addr);
-    } else {
-	state.write_memory(addr, state.a);
-    }
-    return make_pair(0, 0);
-}
-
-pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint8_t low = state.read_memory(state.sp++);
     uint8_t high = state.read_memory(state.sp++);
@@ -194,7 +194,7 @@ pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* co
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t value = read_register_pair(state, instruction.operand1);
     state.write_memory(state.sp--, value >> 8 & 0xff);
@@ -202,47 +202,25 @@ pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, uint8_t* c
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> INC(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> INC(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = 0, num2 = 1;
-    if (state.registers.find(instruction.operand1) != state.registers.end()) {
-	num1 = *state.registers[instruction.operand1];
-	(*state.registers[instruction.operand1])++;
-    } else if (state.register_pairs.find(instruction.operand1) != state.register_pairs.end()) {
-	uint16_t value = read_register_pair(state, instruction.operand1);
-	write_register_pair(state, instruction.operand1, value + 1);
-    } else if (instruction.operand1.compare("SP") == 0) {
-	state.sp++;
-    } else if (instruction.operand1.compare("(HL)") == 0) {
-	uint16_t hl = read_register_pair(state, "HL");
-	uint16_t value = state.read_memory(hl);
-	state.write_memory(hl, value + 1);
-	num1 = value;
-    }
+    num1 = read_operand(state, instruction.operand1, op_code);
+    write_operand(state, instruction.operand1, op_code, num1 + 1);
+
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> DEC(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> DEC(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = 0, num2 = 1;
-    if (state.registers.find(instruction.operand1) != state.registers.end()) {
-	num1 = *state.registers[instruction.operand1];
-	(*state.registers[instruction.operand1])--;
-    } else if (state.register_pairs.find(instruction.operand1) != state.register_pairs.end()) {
-	uint16_t value = read_register_pair(state, instruction.operand1);
-	write_register_pair(state, instruction.operand1, value - 1);
-    } else if (instruction.operand1.compare("SP") == 0) {
-	state.sp--;
-    } else if (instruction.operand1.compare("(HL)") == 0) {
-	uint16_t hl = read_register_pair(state, "HL");
-	uint16_t value = state.read_memory(hl);
-	state.write_memory(hl, value - 1);
-	num1 = value;
-    }
+    num1 = read_operand(state, instruction.operand1, op_code);
+    write_operand(state, instruction.operand1, op_code, num1 - 1);
+
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a, num2 = 0;
     if (state.f & FLAG_C || ((state.f & FLAG_N) == 0 && state.a > 0x99)) {
@@ -255,87 +233,83 @@ pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, uint8_t* co
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> CPL(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> CPL(State& state, Instruction& instruction, uint8_t* op_code)
 {
     state.a = ~state.a;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint16_t num1 = 0, num2 = 0;
-    if (state.register_pairs.find(instruction.operand2) != state.register_pairs.end()) {
-	num2 = read_register_pair(state, instruction.operand2);
-    } else if (instruction.operand2.compare("SP") == 0) {
-        num2 = state.sp;
+    uint16_t value = 0, num1 = 0, num2 = 0;
+    num1 = read_operand(state, instruction.operand1, op_code);
+    num2 = read_operand(state, instruction.operand2, op_code);
+
+    if (instruction.operand2 == "r8") {
+	value = num1 + (int8_t) num2;
+	num2 &= 0x7f;
     } else {
-	num2 = read_8bit_operand(state, instruction.operand2, code);
+	value = num1 + num2;
     }
 
-    if (instruction.operand1.compare("HL") == 0) {
-	num1 = read_register_pair(state, "HL");
-	write_register_pair(state, "HL", num1 + num2);
-    } else {
-	num1 = state.a;
-	state.a += num2;
-    }
+    write_operand(state, instruction.operand1, op_code, value);
 
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> ADC(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> ADC(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a;
-    uint16_t num2 = read_8bit_operand(state, instruction.operand2, code);
+    uint16_t num2 = read_operand(state, instruction.operand2, op_code);
     num2 += state.f & FLAG_C ? 1 : 0;
     state.a += num2;
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> SUB(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> SUB(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a;
-    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a -= num2;
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a;
-    uint16_t num2 = read_8bit_operand(state, instruction.operand2, code);
+    uint16_t num2 = read_operand(state, instruction.operand2, op_code);
     num2 += state.f & FLAG_C ? 1 : 0;
     state.a -= num2;
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> AND(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> AND(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a;
-    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a &= num2;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> XOR(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> XOR(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a;
-    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a ^= num2;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> OR(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> OR(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a;
-    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a |= num2;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> CP(State& state, Instruction& instruction, uint8_t* code)
+pair<uint16_t, uint16_t> CP(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = state.a;
-    uint16_t num2 = read_8bit_operand(state, instruction.operand1, code);
+    uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     return make_pair(num1, num2);
 }
