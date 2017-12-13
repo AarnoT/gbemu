@@ -351,9 +351,9 @@ pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, uint8_t* op_
 
     if (jump) {
 	if (instruction.operand1 == "(HL)") {
-	    state.pc = state.read_register_pair("HL");
+	    state.pc = read_register_pair(state, "HL");
 	} else {
-            state.pc = uint8_to_uint16(code[2], code[1]);
+            state.pc = uint8_to_uint16(op_code[2], op_code[1]);
 	}
     }
 }
@@ -377,4 +377,10 @@ pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, uint8_t* o
         push_onto_stack(state, state.pc);
         state.pc = uint8_to_uint16(op_code[2], op_code[1]);
     }
+}
+
+pair<uint16_t, uint16_t> RST(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    push_onto_stack(state, state.pc);
+    state.pc = read_operand(state, instruction.operand1, op_code);
 }

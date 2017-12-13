@@ -43,3 +43,4 @@ std::pair<std::uint16_t, std::uint16_t> JR(State& state, Instruction& instructio
 std::pair<std::uint16_t, std::uint16_t> JP(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> RET(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> CALL(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RST(State& state, Instruction& instruction, std::uint8_t* op_code);
