@@ -182,6 +182,19 @@ bool check_condition(State& state, string& condition_code)
 	return condition;
 }
 
+uint16_t pop_from_stack(State& state)
+{
+    uint8_t low = state.read_memory(state.sp++);
+    uint8_t high = state.read_memory(state.sp++);
+    return uint8_to_uint16(high, low);
+}
+
+void push_onto_stack(State& state, uint16_t value)
+{
+    state.write_memory(state.sp--, value >> 8 & 0xff);
+    state.write_memory(state.sp--, value & 0xff);
+}
+
 pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t num1 = 0, num2 = 0;
@@ -198,9 +211,7 @@ pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_
 
 pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint8_t low = state.read_memory(state.sp++);
-    uint8_t high = state.read_memory(state.sp++);
-    uint16_t value = uint8_to_uint16(high, low);
+    uint16_t value = pop_from_stack(state);
     write_register_pair(state, instruction.operand1, value);
     return make_pair(0, 0);
 }
@@ -208,8 +219,7 @@ pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* op
 pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t value = read_register_pair(state, instruction.operand1);
-    state.write_memory(state.sp--, value >> 8 & 0xff);
-    state.write_memory(state.sp--, value & 0xff);
+    push_onto_stack(state, value);
     return make_pair(0, 0);
 }
 
@@ -341,5 +351,15 @@ pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, uint8_t* op_
 
     if (jump) {
         state.pc = uint8_to_uint16(op_code[2], op_code[1]);
+    }
+}
+
+pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    bool jump = instruction.operand_count == 0;
+    jump = jump || check_condition(state, instruction.operand1);
+
+    if (jump) {
+        state.pc = pop_from_stack(state);
     }
 }
