@@ -59,3 +59,4 @@ std::pair<std::uint16_t, std::uint16_t> SWAP(State& state, Instruction& instruct
 std::pair<std::uint16_t, std::uint16_t> BIT(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> RES(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> SET_(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> NOP(State& state, Instruction& instruction, std::uint8_t* op_code);

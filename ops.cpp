@@ -538,3 +538,8 @@ pair<uint16_t, uint16_t> SET_(State& state, Instruction& instruction, uint8_t* o
     write_operand(state, instruction.operand2, op_code, value);
     return make_pair(0, 0);
 }
+
+pair<uint16_t, uint16_t> NOP(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    return make_pair(0, 0);
+}
