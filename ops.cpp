@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -19,8 +20,34 @@ using std::int64_t;
 using std::make_pair;
 using std::map;
 using std::pair;
+using std::set;
 using std::string;
 using std::vector;
+
+map<string, OpFunction> op_functions {
+    {"NOP", &NOP}, {"STOP", &NOP}, {"JR", &JR}, {"LD", &LD}, {"INC", &INC}, {"DEC", &DEC},
+    {"RLCA", &RLCA}, {"RLA", &RLA}, {"DAA", &DAA}, {"SCF", &NOP}, {"ADD", &ADD}, 
+    {"RRCA", &RRCA}, {"RRA", &RRA}, {"CPL", &CPL}, {"CCF", &NOP}, {"ADC", &ADC},
+    {"HALT", &NOP}, {"SUB", &SUB}, {"SBC", &SBC}, {"AND", &AND}, {"XOR", &XOR}, {"OR", OR},
+    {"CP", &CP}, {"RET", &RET}, {"LDH", &LD}, {"POP", &POP}, {"JP", &JP}, {"DI", &NOP},
+    {"CALL", &CALL}, {"PUSH", &PUSH}, {"RST", &RST}, {"RETI", &RET}, {"EI", &NOP},
+    {"RLC", &RLC}, {"RRC", &RRC}, {"RL", &RL}, {"RR", &RR}, {"SLA", &SLA}, {"SRA", &SRA},
+    {"SWAP", &SWAP}, {"SRL", &SRL}, {"BIT", &BIT}, {"RES", &RES}, {"SET", &SET_} 
+};
+
+void execute_op(State& state)
+{
+    uint8_t op_code[] {state.read_memory(state.pc),
+	               state.read_memory(state.pc + 1),
+		       state.read_memory(state.pc + 2)};
+    Instruction& instruction = op_code[0] == 0xcb ? ops_cb[op_code[1]] : ops[op_code[0]];
+    state.pc += instruction.bytes;
+    set<uint8_t> ops_16b {0x09, 0x19, 0x29, 0x39, 0xe8, 0xf8};
+    bool uint16 = ops_16b.find(op_code[0]) != ops_16b.end();
+    auto operands = op_functions[instruction.name](state, instruction, op_code);
+    update_flags(state, op_code, operands, uint16); 
+    state.instructions_executed++;
+}
 
 bool check_carry(pair<uint16_t, uint16_t> operands,
 		 uint8_t carry_bit, uint8_t flags)
