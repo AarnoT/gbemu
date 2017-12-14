@@ -241,13 +241,13 @@ pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_
 pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint16_t value = pop_from_stack(state);
-    write_register_pair(state, instruction.operand1, value);
+    write_register_pair(state, (const string) instruction.operand1, value);
     return make_pair(0, 0);
 }
 
 pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint16_t value = read_register_pair(state, instruction.operand1);
+    uint16_t value = read_register_pair(state, (const string) instruction.operand1);
     push_onto_stack(state, value);
     return make_pair(0, 0);
 }
