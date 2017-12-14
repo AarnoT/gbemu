@@ -506,3 +506,35 @@ pair<uint16_t, uint16_t> SWAP(State& state, Instruction& instruction, uint8_t* o
     write_operand(state, instruction.operand1, op_code, value);
     return make_pair(value, 0);
 }
+
+pair<uint16_t, uint16_t> BIT(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand2, op_code);
+    uint8_t bit = 0;
+    sscanf(instruction.operand1.c_str(), "%d", &bit);
+    if (value & (1 << bit)) {
+	return make_pair(1, 0);
+    } else {
+	return make_pair(0, 0);
+    }
+}
+
+pair<uint16_t, uint16_t> RES(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand2, op_code);
+    uint8_t bit = 0;
+    sscanf(instruction.operand1.c_str(), "%d", &bit);
+    value &= ~(1 << bit);
+    write_operand(state, instruction.operand2, op_code, value);
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> SET_(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand2, op_code);
+    uint8_t bit = 0;
+    sscanf(instruction.operand1.c_str(), "%d", &bit);
+    value |= 1 << bit;
+    write_operand(state, instruction.operand2, op_code, value);
+    return make_pair(0, 0);
+}

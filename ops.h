@@ -56,3 +56,6 @@ std::pair<std::uint16_t, std::uint16_t> SLA(State& state, Instruction& instructi
 std::pair<std::uint16_t, std::uint16_t> SRA(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> SRL(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> SWAP(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> BIT(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RES(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> SET_(State& state, Instruction& instruction, std::uint8_t* op_code);
