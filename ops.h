@@ -44,3 +44,14 @@ std::pair<std::uint16_t, std::uint16_t> JP(State& state, Instruction& instructio
 std::pair<std::uint16_t, std::uint16_t> RET(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> CALL(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> RST(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RLCA(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RLA(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RRCA(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RRA(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RLC(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RRC(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RL(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RR(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> SLA(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> SRA(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> SRL(State& state, Instruction& instruction, std::uint8_t* op_code);

@@ -342,6 +342,7 @@ pair<uint16_t, uint16_t> JR(State& state, Instruction& instruction, uint8_t* op_
     if (jump) {
         state.pc += (int8_t) op_code[1];
     }
+    return make_pair(0, 0);
 }
 
 pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, uint8_t* op_code)
@@ -356,6 +357,7 @@ pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, uint8_t* op_
             state.pc = uint8_to_uint16(op_code[2], op_code[1]);
 	}
     }
+    return make_pair(0, 0);
 }
 
 pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, uint8_t* op_code)
@@ -366,6 +368,7 @@ pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, uint8_t* op
     if (jump) {
         state.pc = pop_from_stack(state);
     }
+    return make_pair(0, 0);
 }
 
 pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, uint8_t* op_code)
@@ -377,10 +380,121 @@ pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, uint8_t* o
         push_onto_stack(state, state.pc);
         state.pc = uint8_to_uint16(op_code[2], op_code[1]);
     }
+    return make_pair(0, 0);
 }
 
 pair<uint16_t, uint16_t> RST(State& state, Instruction& instruction, uint8_t* op_code)
 {
     push_onto_stack(state, state.pc);
     state.pc = read_operand(state, instruction.operand1, op_code);
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> RLCA(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t bit7 = (state.a & 0x80) >> 7;
+    state.f |= bit7 ? FLAG_C : 0;
+    state.a = (state.a << 1) | bit7;
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> RLA(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    state.f |= (state.a & 0x80) ? FLAG_C : 0;
+    state.a = state.a << 1;
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> RRCA(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t bit0 = (state.a & 1) << 7;
+    state.f |= bit0 ? FLAG_C : 0;
+    state.a = (state.a >> 1) | bit0;
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> RRA(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    state.f |= (state.a & 1) ? FLAG_C : 0;
+    state.a = state.a >> 1;
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> RLC(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+
+    uint8_t bit7 = (value & 0x80) >> 7;
+    state.f |= bit7 ? FLAG_C : 0;
+    value = (value << 1) | bit7;
+
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
+}
+
+pair<uint16_t, uint16_t> RRC(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+
+    uint8_t bit0 = (value & 1) << 7;
+    state.f |= bit0 ? FLAG_C : 0;
+    value = (value >> 1) | bit0;
+
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
+}
+
+pair<uint16_t, uint16_t> RL(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+
+    state.f |= (value & 0x80) ? FLAG_C : 0;
+    value = value << 1;
+
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
+}
+
+pair<uint16_t, uint16_t> RR(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+
+    state.f |= (value & 1) ? FLAG_C : 0;
+    value = value >> 1;
+
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
+}
+
+pair<uint16_t, uint16_t> SLA(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+
+    state.f |= (value & 0x80) ? FLAG_C : 0;
+    value = value << 1;
+
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
+}
+
+pair<uint16_t, uint16_t> SRA(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+
+    state.f &= ~FLAG_C;
+    value = (value & 0x80) | (value >> 1);
+
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
+}
+
+pair<uint16_t, uint16_t> SRL(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+
+    state.f |= (value & 1) ? FLAG_C : 0;
+    value = value >> 1;
+
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
 }
