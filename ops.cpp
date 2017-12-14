@@ -1,5 +1,7 @@
 #include "ops.h"
+#include "instruction.h"
 #include "op_table.h"
+#include "state.h"
 
 #include <cstdint>
 #include <iostream>

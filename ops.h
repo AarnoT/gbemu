@@ -1,3 +1,5 @@
+#pragma once
+
 #include "instruction.h"
 #include "state.h"
 

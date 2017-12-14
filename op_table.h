@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 
 extern std::vector<Instruction> ops;
