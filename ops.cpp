@@ -498,3 +498,11 @@ pair<uint16_t, uint16_t> SRL(State& state, Instruction& instruction, uint8_t* op
     write_operand(state, instruction.operand1, op_code, value);
     return make_pair(value, 0);
 }
+
+pair<uint16_t, uint16_t> SWAP(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    uint8_t value = read_operand(state, instruction.operand1, op_code);
+    value = (value & 0xf) << 4 | (value & 0xf0) >> 4;
+    write_operand(state, instruction.operand1, op_code, value);
+    return make_pair(value, 0);
+}
