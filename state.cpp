@@ -22,7 +22,7 @@ State::~State() {
 }
 
 uint8_t State::read_memory(uint16_t addr) {
-    if (addr >= 0 && addr <= 0xffff) {
+    if (true) {
 	return this->memory[addr];
     } else {
 	cout << "[WARNING]: Invalid memory read at " << hex << addr << ".\n";

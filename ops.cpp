@@ -3,6 +3,7 @@
 #include "op_table.h"
 #include "state.h"
 
+#include <cinttypes>
 #include <cstdint>
 #include <iostream>
 #include <map>
@@ -57,11 +58,11 @@ bool check_carry(pair<uint16_t, uint16_t> operands,
     uint16_t num1 = operands.first, num2 = operands.second;
     uint16_t mask = (1 << (carry_bit + 1)) - 1;
 
-    if (flags & FLAG_N != 0) {
+    if ((flags & FLAG_N) != 0) {
         return (int32_t) (num1 & mask) - (int32_t) (num2 & mask) < 0;
     }
     else {
-	return (num1 & mask) + (num2 & mask) & (1 << (carry_bit + 1)) != 0;
+	return (((num1 & mask) + (num2 & mask)) & (1 << (carry_bit + 1))) != 0;
     }
 }
 
@@ -146,7 +147,7 @@ uint16_t read_operand(State& state, const string& operand_name, uint8_t* op_code
     } else if (operand_name == "SP+r8") {
 	value = state.sp + (int8_t) op_code[1];
     } else if (operand_name.length() == 3 && operand_name[2] == 'H') {
-	sscanf(operand_name.substr(0, 2).c_str(), "%x", value);
+	sscanf(operand_name.substr(0, 2).c_str(), "%" SCNx16, &value);
     } else if (operand_name.front() == '(' && operand_name.back() == ')') {
 	string location = operand_name.substr(1, operand_name.length() - 2);
 	uint16_t addr = 0;
@@ -204,8 +205,8 @@ bool check_condition(State& state, string& condition_code)
 {
 	bool condition = false;
 	switch (condition_code.back()) {
-	case 'Z': condition = state.f & FLAG_Z != 0; break;
-	case 'C': condition = state.f & FLAG_C != 0; break;
+	case 'Z': condition = (state.f & FLAG_Z) != 0; break;
+	case 'C': condition = (state.f & FLAG_C) != 0; break;
 	}
 	if (condition_code.front() == 'N') {condition = !condition;}
 	return condition;
@@ -334,7 +335,6 @@ pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, uint8_t* op
 
 pair<uint16_t, uint16_t> AND(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a &= num2;
     return make_pair(state.a, 0);
@@ -342,7 +342,6 @@ pair<uint16_t, uint16_t> AND(State& state, Instruction& instruction, uint8_t* op
 
 pair<uint16_t, uint16_t> XOR(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a ^= num2;
     return make_pair(state.a, 0);
@@ -350,7 +349,6 @@ pair<uint16_t, uint16_t> XOR(State& state, Instruction& instruction, uint8_t* op
 
 pair<uint16_t, uint16_t> OR(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a |= num2;
     return make_pair(state.a, 0);
@@ -540,7 +538,7 @@ pair<uint16_t, uint16_t> BIT(State& state, Instruction& instruction, uint8_t* op
 {
     uint8_t value = read_operand(state, instruction.operand2, op_code);
     uint8_t bit = 0;
-    sscanf(instruction.operand1.c_str(), "%d", &bit);
+    sscanf(instruction.operand1.c_str(), "%" SCNx8, &bit);
     if (value & (1 << bit)) {
 	return make_pair(1, 0);
     } else {
@@ -552,7 +550,7 @@ pair<uint16_t, uint16_t> RES(State& state, Instruction& instruction, uint8_t* op
 {
     uint8_t value = read_operand(state, instruction.operand2, op_code);
     uint8_t bit = 0;
-    sscanf(instruction.operand1.c_str(), "%d", &bit);
+    sscanf(instruction.operand1.c_str(), "%" SCNx8, &bit);
     value &= ~(1 << bit);
     write_operand(state, instruction.operand2, op_code, value);
     return make_pair(0, 0);
@@ -562,7 +560,7 @@ pair<uint16_t, uint16_t> SET_(State& state, Instruction& instruction, uint8_t* o
 {
     uint8_t value = read_operand(state, instruction.operand2, op_code);
     uint8_t bit = 0;
-    sscanf(instruction.operand1.c_str(), "%d", &bit);
+    sscanf(instruction.operand1.c_str(), "%" SCNx8, &bit);
     value |= 1 << bit;
     write_operand(state, instruction.operand2, op_code, value);
     return make_pair(0, 0);
