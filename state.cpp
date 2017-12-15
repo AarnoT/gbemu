@@ -1,15 +1,21 @@
 #include "state.h"
 #include "instruction.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 
 using std::cout;
+using std::copy;
 using std::hex;
 using std::uint8_t;
 using std::uint16_t;
+using std::uint32_t;
 
-State::State() : memory(new uint8_t[0x60000]) {}
+State::State(uint8_t* buffer, uint32_t size) : memory(new uint8_t[0x60000])
+{
+    copy(buffer, buffer + size, this->memory);
+}
 
 State::~State() {
     delete this->memory;

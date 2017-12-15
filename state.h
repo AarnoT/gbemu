@@ -30,7 +30,7 @@ public:
     std::uint16_t sp = 0, pc = 0;
     std::uint32_t instructions_executed = 0;
     bool interrupts_enabled = false;
-    State(); 
+    State(std::uint8_t* buffer, std::uint32_t size); 
     ~State();
     std::uint8_t read_memory(std::uint16_t addr);
     void write_memory(std::uint16_t addr, std::uint8_t value);
