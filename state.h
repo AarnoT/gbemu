@@ -27,7 +27,7 @@ public:
         {"AF", {&this->a, &this->f}}
     };
 
-    std::uint16_t sp = 0, pc = 0;
+    std::uint16_t sp = 0xfffe, pc = 0;
     std::uint32_t instructions_executed = 0;
     bool interrupts_enabled = false;
     State(std::uint8_t* buffer, std::uint32_t size); 
