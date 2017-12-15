@@ -27,6 +27,7 @@ uint8_t State::read_memory(uint16_t addr) {
     } else {
 	cout << "[WARNING]: Invalid memory read at " << hex << addr << ".\n";
     }
+    return 0;
 }
 
 void State::write_memory(uint16_t addr, uint8_t value) {
