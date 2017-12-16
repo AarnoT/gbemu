@@ -49,10 +49,10 @@ uint8_t execute_op(State& state)
     uint16_t prev_pc = state.pc;
 
     set<uint8_t> ops_16b {0x09, 0x19, 0x29, 0x39, 0xe8, 0xf8};
-    bool uint16 = ops_16b.find(op_code[0]) != ops_16b.end();
+    bool is_16_bit = ops_16b.find(op_code[0]) != ops_16b.end();
 
     auto operands = op_functions[instruction.name](state, instruction, op_code);
-    update_flags(state, op_code, operands, uint16); 
+    update_flags(state, op_code, operands, is_16_bit); 
     state.instructions_executed++;
 
     return instruction.cycles + (state.pc == prev_pc ? instruction.branch_cycles : 0);
@@ -90,7 +90,7 @@ void update_flag(State& state, uint8_t flag_bit, FlagEffect& effect, bool value)
 }
 
 void update_flags(State& state, uint8_t* op_code,
-		  pair<uint16_t, uint16_t> operands, bool uint16)
+		  pair<uint16_t, uint16_t> operands, bool is_16_bit)
 {
     uint16_t num1 = operands.first, num2 = operands.second;
 
@@ -103,8 +103,8 @@ void update_flags(State& state, uint8_t* op_code,
     uint32_t result = i.flags_ZNHC[1] == FlagEffect::SET ? num1 - num2 : num1 + num2;
     bool rotate_op = (op_code[0] & 0xe7) == 7 || (op_code[0] == 0xcb && i.flags_ZNHC[3] == FlagEffect::APPLY);
 
-    uint8_t half_carry_bit = uint16 ? 11 : 3;
-    uint8_t carry_bit = uint16 ? 15 : 7;
+    uint8_t half_carry_bit = is_16_bit ? 11 : 3;
+    uint8_t carry_bit = is_16_bit ? 15 : 7;
 
     update_flag(state, FLAG_Z, i.flags_ZNHC[0], result == 0);
     update_flag(state, FLAG_N, i.flags_ZNHC[1], false);
