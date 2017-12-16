@@ -32,8 +32,8 @@ map<string, OpFunction> op_functions {
     {"RLCA", &RLCA}, {"RLA", &RLA}, {"DAA", &DAA}, {"SCF", &NOP}, {"ADD", &ADD}, 
     {"RRCA", &RRCA}, {"RRA", &RRA}, {"CPL", &CPL}, {"CCF", &CCF}, {"ADC", &ADC},
     {"HALT", &NOP}, {"SUB", &SUB}, {"SBC", &SBC}, {"AND", &AND}, {"XOR", &XOR}, {"OR", OR},
-    {"CP", &CP}, {"RET", &RET}, {"LDH", &LD}, {"POP", &POP}, {"JP", &JP}, {"DI", &NOP},
-    {"CALL", &CALL}, {"PUSH", &PUSH}, {"RST", &RST}, {"RETI", &RET}, {"EI", &NOP},
+    {"CP", &CP}, {"RET", &RET}, {"LDH", &LD}, {"POP", &POP}, {"JP", &JP}, {"DI", &DI},
+    {"CALL", &CALL}, {"PUSH", &PUSH}, {"RST", &RST}, {"RETI", &RETI}, {"EI", &EI},
     {"RLC", &RLC}, {"RRC", &RRC}, {"RL", &RL}, {"RR", &RR}, {"SLA", &SLA}, {"SRA", &SRA},
     {"SWAP", &SWAP}, {"SRL", &SRL}, {"BIT", &BIT}, {"RES", &RES}, {"SET", &SET_} 
 };
@@ -404,6 +404,18 @@ pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, uint8_t* op
     return make_pair(0, 0);
 }
 
+pair<uint16_t, uint16_t> RETI(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    bool jump = instruction.operand_count == 0;
+    jump = jump || check_condition(state, instruction.operand1);
+
+    if (jump) {
+        state.pc = pop_from_stack(state);
+    }
+    state.interrupts_enabled = true;
+    return make_pair(0, 0);
+}
+
 pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, uint8_t* op_code)
 {
     bool jump = instruction.operand_count == 1;
@@ -580,5 +592,17 @@ pair<uint16_t, uint16_t> NOP(State& state, Instruction& instruction, uint8_t* op
 pair<uint16_t, uint16_t> CCF(State& state, Instruction& instruction, uint8_t* op_code)
 {
     state.f &= ~FLAG_C;
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> EI(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    state.interrupts_enabled = true;
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> DI(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    state.interrupts_enabled = false;
     return make_pair(0, 0);
 }

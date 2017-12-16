@@ -51,6 +51,7 @@ std::pair<std::uint16_t, std::uint16_t> CP(State& state, Instruction& instructio
 std::pair<std::uint16_t, std::uint16_t> JR(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> JP(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> RET(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> RETI(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> CALL(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> RST(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> RLCA(State& state, Instruction& instruction, std::uint8_t* op_code);
@@ -70,3 +71,5 @@ std::pair<std::uint16_t, std::uint16_t> RES(State& state, Instruction& instructi
 std::pair<std::uint16_t, std::uint16_t> SET_(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> NOP(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> CCF(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> EI(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> DI(State& state, Instruction& instruction, std::uint8_t* op_code);
