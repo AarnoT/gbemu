@@ -16,7 +16,7 @@ const std::uint8_t FLAG_C = 0x10;
 typedef std::pair<std::uint16_t, std::uint16_t> (*OpFunction)(State&, Instruction&, std::uint8_t*);
 extern std::map<std::string, OpFunction> op_functions;
 
-void execute_op(State& state);
+std::uint8_t execute_op(State& state);
 
 bool check_carry(std::pair<std::uint16_t, std::uint16_t> operands,
 		 std::uint8_t carry_bit, std::uint8_t flags);
