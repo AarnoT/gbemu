@@ -30,7 +30,7 @@ using std::vector;
 map<string, OpFunction> op_functions {
     {"NOP", &NOP}, {"STOP", &NOP}, {"JR", &JR}, {"LD", &LD}, {"INC", &INC}, {"DEC", &DEC},
     {"RLCA", &RLCA}, {"RLA", &RLA}, {"DAA", &DAA}, {"SCF", &NOP}, {"ADD", &ADD}, 
-    {"RRCA", &RRCA}, {"RRA", &RRA}, {"CPL", &CPL}, {"CCF", &NOP}, {"ADC", &ADC},
+    {"RRCA", &RRCA}, {"RRA", &RRA}, {"CPL", &CPL}, {"CCF", &CCF}, {"ADC", &ADC},
     {"HALT", &NOP}, {"SUB", &SUB}, {"SBC", &SBC}, {"AND", &AND}, {"XOR", &XOR}, {"OR", OR},
     {"CP", &CP}, {"RET", &RET}, {"LDH", &LD}, {"POP", &POP}, {"JP", &JP}, {"DI", &NOP},
     {"CALL", &CALL}, {"PUSH", &PUSH}, {"RST", &RST}, {"RETI", &RET}, {"EI", &NOP},
@@ -109,7 +109,7 @@ void update_flags(State& state, uint8_t* op_code,
     update_flag(state, FLAG_Z, i.flags_ZNHC[0], result == 0);
     update_flag(state, FLAG_N, i.flags_ZNHC[1], false);
     update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, state.f));
-    if (!rotate_op) {
+    if (!rotate_op && op_code[0] != 0x3f) {
 	/* Carry flag is set elsewhere for rotation/shift ops. */
         update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, carry_bit, state.f));
     }
@@ -237,7 +237,7 @@ pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_
     uint16_t value = read_operand(state, instruction.operand2, op_code);
     write_operand(state, instruction.operand1, op_code, value);
 
-    if (instruction.operand2.compare("SP+r8") == 0) {
+    if (instruction.operand2 == "SP+r8") {
 	num1 = state.sp;
 	num2 = op_code[1] & 0x7f;
     }
@@ -574,5 +574,11 @@ pair<uint16_t, uint16_t> SET_(State& state, Instruction& instruction, uint8_t* o
 
 pair<uint16_t, uint16_t> NOP(State& state, Instruction& instruction, uint8_t* op_code)
 {
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> CCF(State& state, Instruction& instruction, uint8_t* op_code)
+{
+    state.f &= ~FLAG_C;
     return make_pair(0, 0);
 }
