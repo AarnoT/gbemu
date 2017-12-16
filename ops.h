@@ -68,7 +68,7 @@ std::pair<std::uint16_t, std::uint16_t> SRL(State& state, Instruction& instructi
 std::pair<std::uint16_t, std::uint16_t> SWAP(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> BIT(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> RES(State& state, Instruction& instruction, std::uint8_t* op_code);
-std::pair<std::uint16_t, std::uint16_t> SET_(State& state, Instruction& instruction, std::uint8_t* op_code);
+std::pair<std::uint16_t, std::uint16_t> SET(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> NOP(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> CCF(State& state, Instruction& instruction, std::uint8_t* op_code);
 std::pair<std::uint16_t, std::uint16_t> EI(State& state, Instruction& instruction, std::uint8_t* op_code);

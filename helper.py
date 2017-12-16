@@ -14,8 +14,10 @@ def write_ops(f, op_dict):
         operand2 = '"' + op.get('operand2', 'NONE') + '"'
         cycles = op['cycles'][0]
         branch_cycles = op['cycles'][1] if len(op['cycles']) >= 2 else 0
-        flag_dict = {'1' : 'SET', '0' : 'CLEAR', '-' : 'IGNORE'}
-        flags = [flag_dict.get(flag, 'APPLY') for flag in op['flags_ZHNC']]
+        flag_dict = {'1' : 'FlagEffect::SET',
+                     '0' : 'FlagEffect::CLEAR',
+                     '-' : 'FlagEffect::IGNORE'}
+        flags = [flag_dict.get(flag, 'FlagEffect::APPLY') for flag in op['flags_ZHNC']]
         flags = '{{{}}}'.format(', '.join(flags))
         f.write(format_str.format(
             name, op_bytes, operand_count, operand1, operand2, cycles,

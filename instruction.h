@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-enum FlagEffect {
+enum class FlagEffect {
     APPLY = 0,
     IGNORE,
     SET,

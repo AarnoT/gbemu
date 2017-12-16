@@ -35,7 +35,7 @@ map<string, OpFunction> op_functions {
     {"CP", &CP}, {"RET", &RET}, {"LDH", &LD}, {"POP", &POP}, {"JP", &JP}, {"DI", &DI},
     {"CALL", &CALL}, {"PUSH", &PUSH}, {"RST", &RST}, {"RETI", &RETI}, {"EI", &EI},
     {"RLC", &RLC}, {"RRC", &RRC}, {"RL", &RL}, {"RR", &RR}, {"SLA", &SLA}, {"SRA", &SRA},
-    {"SWAP", &SWAP}, {"SRL", &SRL}, {"BIT", &BIT}, {"RES", &RES}, {"SET", &SET_} 
+    {"SWAP", &SWAP}, {"SRL", &SRL}, {"BIT", &BIT}, {"RES", &RES}, {"SET", &SET} 
 };
 
 uint8_t execute_op(State& state)
@@ -75,16 +75,16 @@ bool check_carry(pair<uint16_t, uint16_t> operands,
 void update_flag(State& state, uint8_t flag_bit, FlagEffect& effect, bool value)
 {
     switch (effect) {
-    case APPLY:
+    case FlagEffect::APPLY:
         state.f |= value ? flag_bit : 0;
 	break;
-    case SET:
+    case FlagEffect::SET:
 	state.f |= flag_bit;
 	break;
-    case CLEAR:
+    case FlagEffect::CLEAR:
 	state.f &= ~flag_bit;
 	break;
-    case IGNORE:
+    case FlagEffect::IGNORE:
 	break;
     }
 }
@@ -100,8 +100,8 @@ void update_flags(State& state, uint8_t* op_code,
     }
 
     Instruction& i = op_code[0] == 0xcb ? ops_cb[op_code[1]] : ops[op_code[0]];
-    uint32_t result = i.flags_ZNHC[1] == SET ? num1 - num2 : num1 + num2;
-    bool rotate_op = (op_code[0] & 0xe7) == 7 || (op_code[0] == 0xcb && i.flags_ZNHC[3] == APPLY);
+    uint32_t result = i.flags_ZNHC[1] == FlagEffect::SET ? num1 - num2 : num1 + num2;
+    bool rotate_op = (op_code[0] & 0xe7) == 7 || (op_code[0] == 0xcb && i.flags_ZNHC[3] == FlagEffect::APPLY);
 
     uint8_t half_carry_bit = uint16 ? 11 : 3;
     uint8_t carry_bit = uint16 ? 15 : 7;
@@ -574,7 +574,7 @@ pair<uint16_t, uint16_t> RES(State& state, Instruction& instruction, uint8_t* op
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> SET_(State& state, Instruction& instruction, uint8_t* op_code)
+pair<uint16_t, uint16_t> SET(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint8_t value = read_operand(state, instruction.operand2, op_code);
     uint8_t bit = 0;
