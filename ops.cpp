@@ -94,7 +94,7 @@ void update_flags(State& state, uint8_t* op_code,
 {
     uint16_t num1 = operands.first, num2 = operands.second;
 
-    if (op_code[0] == 0xcb) { /* POP AF */
+    if (op_code[0] == 0xf1) { /* POP AF */
         state.f = num1 & 0xf0; 
 	return;
     }
