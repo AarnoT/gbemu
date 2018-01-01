@@ -3,6 +3,18 @@ import json
 with open('ops.json', 'r') as f:
     ops = json.loads(f.read())
 
+# Set missing ops to NOP
+ops['unprefixed']['0xd3'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xdb'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xdd'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xe3'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xe4'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xeb'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xec'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xed'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xf4'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xfc'] = ops['unprefixed']['0x0']
+ops['unprefixed']['0xfd'] = ops['unprefixed']['0x0']
 
 def write_ops(f, op_dict):
     format_str = '{{{}, {}, {}, {}, {}, {}, {}, {}}},\n'
