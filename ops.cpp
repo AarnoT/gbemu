@@ -162,12 +162,12 @@ uint16_t read_operand(State& state, const string& operand_name, uint8_t* op_code
 	string location = operand_name.substr(1, operand_name.length() - 2);
 	uint16_t addr = 0;
 	if (state.register_pairs.find(location) != state.register_pairs.end()) {
-	    addr = read_register_pair(state, operand_name);
+	    addr = read_register_pair(state, location.c_str());
 	} else if (location == "HL+") {
-	    addr = read_register_pair(state, operand_name);
+	    addr = read_register_pair(state, "HL");
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") + 1);
 	} else if (location == "HL-") {
-	    addr = read_register_pair(state, operand_name);
+	    addr = read_register_pair(state, "HL");
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") - 1);
 	} else if (location == "a8") {
 	    addr = uint8_to_uint16(0xff, op_code[1]);
@@ -193,12 +193,12 @@ void write_operand(State& state, const string& operand_name, uint8_t* op_code, u
 	string location = operand_name.substr(1, operand_name.size() - 2);
 	uint16_t addr = 0;
 	if (state.register_pairs.find(location) != state.register_pairs.end()) {
-	    addr = read_register_pair(state, operand_name);
+	    addr = read_register_pair(state, location.c_str());
 	} else if (location == "HL+") {
-	    addr = read_register_pair(state, operand_name);
+	    addr = read_register_pair(state, "HL");
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") + 1);
 	} else if (location == "HL-") {
-	    addr = read_register_pair(state, operand_name);
+	    addr = read_register_pair(state, "HL");
 	    write_register_pair(state, "HL", read_register_pair(state, "HL") - 1);
 	} else if (location == "a8") {
 	    addr = uint8_to_uint16(0xff, op_code[1]);
