@@ -76,7 +76,11 @@ void update_flag(State& state, uint8_t flag_bit, FlagEffect& effect, bool value)
 {
     switch (effect) {
     case FlagEffect::APPLY:
-        state.f |= value ? flag_bit : 0;
+	if (value) {
+	    state.f |= flag_bit;
+	} else {
+            state.f &= ~flag_bit;
+	}
 	break;
     case FlagEffect::SET:
 	state.f |= flag_bit;
