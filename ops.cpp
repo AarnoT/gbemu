@@ -224,8 +224,8 @@ bool check_condition(State& state, string& condition_code)
 
 uint16_t pop_from_stack(State& state)
 {
-    uint8_t low = state.read_memory(state.sp++);
-    uint8_t high = state.read_memory(state.sp++);
+    uint8_t low = state.read_memory(++state.sp);
+    uint8_t high = state.read_memory(++state.sp);
     return uint8_to_uint16(high, low);
 }
 
