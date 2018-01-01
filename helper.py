@@ -6,7 +6,7 @@ with open('ops.json', 'r') as f:
 
 def write_ops(f, op_dict):
     format_str = '{{{}, {}, {}, {}, {}, {}, {}, {}}},\n'
-    for opcode, op in op_dict.items():
+    for opcode, op in sorted(op_dict.items(), key=lambda i: int(i[0], base=16)):
         name = '"' + op['mnemonic'] + '"'
         op_bytes = op['bytes']
         operand_count = op['operand_count']
