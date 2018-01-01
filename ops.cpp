@@ -373,7 +373,7 @@ pair<uint16_t, uint16_t> CP(State& state, Instruction& instruction, uint8_t* op_
 
 pair<uint16_t, uint16_t> JR(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    bool jump = instruction.operand_count == 0;
+    bool jump = instruction.operand_count == 1;
     jump = jump || check_condition(state, instruction.operand1);
 
     if (jump) {
