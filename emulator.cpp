@@ -4,17 +4,13 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <string>
 
 #include <SDL2/SDL.h>
 
 using std::copy;
 using std::cout;
-using std::ifstream;
-using std::istreambuf_iterator;
 using std::string;
 using std::uint8_t;
 using std::uint32_t;
@@ -42,10 +38,8 @@ int main(int argc, char* argv[])
     }
     SDL_Surface* display_surface = SDL_GetWindowSurface(window);
 
-    const uint32_t buf_size = 0x60000;
-    uint8_t rom_buffer[buf_size];
-    load_rom(argv[1], rom_buffer);
-    State state(rom_buffer, buf_size);
+    State state;
+    state.load_file_to_memory(argv[1]);
 
     uint32_t last_time_ms = SDL_GetTicks();
     uint32_t current_time_ms = last_time_ms;
@@ -76,14 +70,6 @@ int main(int argc, char* argv[])
 
     SDL_DestroyWindow(window);
     SDL_Quit();
-}
-
-void load_rom(string filename, uint8_t* rom_buffer)
-{
-    ifstream rom_file(filename, ifstream::binary);
-    copy(istreambuf_iterator<char>(rom_file),
-         istreambuf_iterator<char>(),
-	 rom_buffer);
 }
 
 void handle_events()

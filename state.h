@@ -10,6 +10,10 @@ public:
     std::uint8_t a = 0, b = 0, c = 0, d = 0,
             	 e = 0, h = 0, l = 0, f = 0;
 
+    std::uint16_t sp = 0xfffe, pc = 0;
+    std::uint32_t instructions_executed = 0;
+    bool interrupts_enabled = false;
+
     std::map<std::string, std::uint8_t*> registers {
         {"A", &this->a},
         {"B", &this->b},
@@ -27,15 +31,15 @@ public:
         {"AF", {&this->a, &this->f}}
     };
 
-    std::uint16_t sp = 0xfffe, pc = 0;
-    std::uint32_t instructions_executed = 0;
-    bool interrupts_enabled = false;
-    State(std::uint8_t* buffer, std::uint32_t size); 
+    State(); 
     ~State();
-    std::uint8_t read_memory(std::uint16_t addr);
-    void write_memory(std::uint16_t addr, std::uint8_t value);
     State(const State& state) = delete;
     State& operator=(const State& state) = delete;
+
+    void dump_memory_to_file(std::string filename);
+    void load_file_to_memory(std::string filename);
+    std::uint8_t read_memory(std::uint16_t addr);
+    void write_memory(std::uint16_t addr, std::uint8_t value);
 private:
     std::uint8_t* memory;
 };
