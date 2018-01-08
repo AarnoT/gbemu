@@ -111,6 +111,16 @@ void update_flags(State& state, uint8_t* op_code,
 
     update_flag(state, FLAG_Z, i.flags_ZNHC[0], (result & (is_16_bit ? 0xffff : 0xff)) == 0);
     update_flag(state, FLAG_N, i.flags_ZNHC[1], false);
+
+    uint8_t flags = state.f;
+    if (op_code[0] == 0xf8 || op_code[0] == 0xe8) {
+	if (num2 & 0x80) {
+	    flags |= FLAG_N;
+	    operands.second = 128 - num2;
+	} else {
+	    flags &= ~FLAG_N;
+	}
+    }
     update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, state.f));
     if (!rotate_op && op_code[0] != 0x3f) {
 	/* Carry flag is set elsewhere for rotation/shift ops. */
@@ -236,16 +246,10 @@ void push_onto_stack(State& state, uint16_t value)
 
 pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint16_t num1 = 0, num2 = 0;
     uint16_t value = read_operand(state, instruction.operand2, op_code);
     write_operand(state, instruction.operand1, op_code, value);
 
-    if (instruction.operand2 == "SP+r8") {
-	num1 = state.sp;
-	num2 = op_code[1] & 0x7f;
-    }
-
-    return make_pair(num1, num2);
+    return make_pair(state.sp, op_code[1]);
 }
 
 pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* op_code)
@@ -302,12 +306,12 @@ pair<uint16_t, uint16_t> CPL(State& state, Instruction& instruction, uint8_t* op
 
 pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    uint16_t value = 0, num1 = 0, num2 = 0;
-    num1 = read_operand(state, instruction.operand1, op_code);
+    uint16_t value = 0;
+    uint16_t num1 = read_operand(state, instruction.operand1, op_code);
+    uint16_t num2 = read_operand(state, instruction.operand2, op_code);
 
     if (instruction.operand2 == "r8") {
 	value = num1 + (int8_t) num2;
-	num2 &= 0x7f;
     } else {
 	value = num1 + num2;
     }
