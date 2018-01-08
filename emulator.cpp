@@ -1,6 +1,7 @@
 #include "emulator.h"
-#include "state.h"
+#include "display.h"
 #include "ops.h"
+#include "state.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -41,6 +42,7 @@ int main(int argc, char* argv[])
 	return 0;
     }
     SDL_Surface* display_surface = SDL_GetWindowSurface(window);
+    SDL_Surface* display_buffer = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
 
     State state;
     state.load_file_to_memory(argv[1]);
@@ -64,29 +66,43 @@ int main(int argc, char* argv[])
 
     uint32_t last_time_ms = SDL_GetTicks();
     uint32_t current_time_ms = last_time_ms;
-    uint32_t last_draw_time_ms = last_time_ms;
     uint32_t cycles_to_catch_up = 0;
+    uint8_t draw_line_counter = 0;
     while (!quit) {
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
 	last_time_ms = current_time_ms;
 
-	while (cycles_to_catch_up > 0) {
-	    uint8_t cycles_executed = execute_op(state) / 4;
-	    if (cycles_executed > cycles_to_catch_up + 20) {break;}
-	    cycles_to_catch_up -= cycles_executed;
-	}
+	while (!quit && cycles_to_catch_up > 0) {
+ 	    uint8_t cycles_executed = execute_op(state) / 4;
 
-	handle_events();
+            if (state.read_memory(0xff02) == 0x81) {
+	        state.write_memory(0xff02, 0);
+	        cout << state.read_memory(0xff01);
+	    }
 
-	// 0xff40 is the LCD control register.
-	if ((state.read_memory(0xff40) & 0x91) == 0x91 && 
-	        current_time_ms - last_draw_time_ms > 17) {
-	    SDL_UpdateWindowSurface(window);
-	    last_draw_time_ms = current_time_ms;
-	    // Set LY register to indicate drawing is done.
-	    state.write_memory(0xff44, 0x90);
-	}
+ 	    if (cycles_executed > cycles_to_catch_up + 20) {break;}
+ 	    cycles_to_catch_up -= cycles_executed;
+	    draw_line_counter += cycles_executed;
+
+	    handle_events();
+
+	    // 0xff40 is the LCD control register.
+	    if ((state.read_memory(0xff40) & 0x80) == 0x80) {
+		if (draw_line_counter >= 114) {
+                    if (state.read_memory(0xff44) == 0) {
+	                draw_display_buffer(state, display_buffer);
+	             }
+ 
+		    draw_display_line(state, display_buffer, display_surface);
+		    draw_line_counter -= 114;
+
+		    if (state.read_memory(0xff44) == 144) {
+	                SDL_UpdateWindowSurface(window);
+		    }
+                }
+	    }
+        }
     }
 
     SDL_DestroyWindow(window);

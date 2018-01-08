@@ -10,7 +10,7 @@ public:
     std::uint8_t a = 0, b = 0, c = 0, d = 0,
             	 e = 0, h = 0, l = 0, f = 0;
 
-    std::uint16_t sp = 0xfffe, pc = 0;
+    std::uint16_t sp = 0xfffe, pc = 0x100;
     std::uint32_t instructions_executed = 0;
     bool interrupts_enabled = false;
 
