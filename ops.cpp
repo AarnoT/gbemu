@@ -116,6 +116,17 @@ void update_flags(State& state, uint8_t* op_code,
     update_flag(state, FLAG_Z, i.flags_ZNHC[0], (result & (is_16_bit ? 0xffff : 0xff)) == 0);
     update_flag(state, FLAG_N, i.flags_ZNHC[1], false);
 
+    if (i.name == "ADC" || i.name == "SBC") {
+        if ((num2 & 0xff) == 0 && state.f & FLAG_C) {
+	    state.f |= FLAG_H | FLAG_C;
+	    return;
+	} else if ((num2 & 0xf) == 0 && state.f & FLAG_C) {
+            update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, carry_bit, state.f));
+	    state.f |= FLAG_H;
+	    return;
+	}
+    }
+
     uint8_t flags = state.f;
     if (op_code[0] == 0xf8 || op_code[0] == 0xe8) {
 	if (num2 & 0x80) {
@@ -330,7 +341,7 @@ pair<uint16_t, uint16_t> ADC(State& state, Instruction& instruction, uint8_t* op
 {
     uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand2, op_code);
-    num2 += state.f & FLAG_C ? 1 : 0;
+    num2 += (state.f & FLAG_C) ? 1 : 0;
     state.a += num2;
     return make_pair(num1, num2);
 }
@@ -347,7 +358,7 @@ pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, uint8_t* op
 {
     uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand2, op_code);
-    num2 += state.f & FLAG_C ? 1 : 0;
+    num2 += (state.f & FLAG_C) ? 1 : 0;
     state.a -= num2;
     return make_pair(num1, num2);
 }
