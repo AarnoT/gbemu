@@ -647,7 +647,11 @@ pair<uint16_t, uint16_t> NOP(State& state, Instruction& instruction, uint8_t* op
 
 pair<uint16_t, uint16_t> CCF(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    state.f &= ~FLAG_C;
+    if (state.f & FLAG_C) {
+	state.f &= ~FLAG_C;
+    } else {
+	state.f |= FLAG_C;
+    }
     return make_pair(0, 0);
 }
 
