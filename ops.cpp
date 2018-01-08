@@ -104,6 +104,10 @@ void update_flags(State& state, uint8_t* op_code,
 
     Instruction& i = op_code[0] == 0xcb ? ops_cb[op_code[1]] : ops[op_code[0]];
     uint32_t result = i.flags_ZNHC[1] == FlagEffect::SET ? num1 - num2 : num1 + num2;
+    if (i.name == "DAA") {
+	result = (state.f & FLAG_N) ? num1 - num2 : num1 + num2;
+    }
+
     bool rotate_op = (op_code[0] & 0xe7) == 7 || (op_code[0] == 0xcb && i.flags_ZNHC[3] == FlagEffect::APPLY);
 
     uint8_t half_carry_bit = is_16_bit ? 11 : 3;
@@ -121,10 +125,10 @@ void update_flags(State& state, uint8_t* op_code,
 	    flags &= ~FLAG_N;
 	}
     }
-    update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, state.f));
-    if (!rotate_op && op_code[0] != 0x3f) {
+    update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, flags));
+    if (!rotate_op && i.name != "CCF" && i.name != "DAA") {
 	/* Carry flag is set elsewhere for rotation/shift ops. */
-        update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, carry_bit, state.f));
+        update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, carry_bit, flags));
     }
 }
 
@@ -290,6 +294,7 @@ pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, uint8_t* op
     uint16_t num1 = state.a, num2 = 0;
     if (state.f & FLAG_C || ((state.f & FLAG_N) == 0 && state.a > 0x99)) {
 	num2 += 0x60;
+	state.f |= FLAG_C;
     }
     if (state.f & FLAG_H || ((state.f & FLAG_N) == 0 && (state.a & 0xf) > 0x9)) {
 	num2 += 6;
