@@ -137,7 +137,7 @@ void update_flags(State& state, uint8_t* op_code,
 	}
     }
     update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, flags));
-    if (!rotate_op && i.name != "CCF" && i.name != "DAA") {
+    if (!rotate_op && i.name != "CCF" && i.name != "DAA" && i.name != "SRA") {
 	/* Carry flag is set elsewhere for rotation/shift ops. */
         update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, carry_bit, flags));
     }
