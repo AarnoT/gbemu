@@ -99,7 +99,6 @@ void update_flags(State& state, uint8_t* op_code,
     uint16_t num1 = operands.first, num2 = operands.second;
 
     if (op_code[0] == 0xf1) { /* POP AF */
-        state.f = num1 & 0xf0; 
 	return;
     }
 
@@ -253,6 +252,7 @@ pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, uint8_t* op
 {
     uint16_t value = pop_from_stack(state);
     write_register_pair(state, (const string) instruction.operand1, value);
+    if (op_code[0] == 0xf1) {state.f &= 0xf0;}
     return make_pair(0, 0);
 }
 
