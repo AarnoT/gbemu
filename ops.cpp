@@ -453,8 +453,13 @@ pair<uint16_t, uint16_t> RLCA(State& state, Instruction& instruction, uint8_t* o
 
 pair<uint16_t, uint16_t> RLA(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    state.f |= (state.a & 0x80) ? FLAG_C : 0;
-    state.a = state.a << 1;
+    uint8_t old_a = state.a;
+    state.a = (state.a << 1) | ((state.f & FLAG_C) ? 1 : 0);
+    if (old_a & 0x80) {
+        state.f |= FLAG_C;
+    } else {
+        state.f &= ~FLAG_C;
+    }
     return make_pair(0, 0);
 }
 
@@ -468,8 +473,13 @@ pair<uint16_t, uint16_t> RRCA(State& state, Instruction& instruction, uint8_t* o
 
 pair<uint16_t, uint16_t> RRA(State& state, Instruction& instruction, uint8_t* op_code)
 {
-    state.f |= (state.a & 1) ? FLAG_C : 0;
-    state.a = state.a >> 1;
+    uint8_t old_a = state.a;
+    state.a = (state.a >> 1) | ((state.f & FLAG_C) ? 0x80 : 0);
+    if (old_a & 1) {
+        state.f |= FLAG_C;
+    } else {
+        state.f &= ~FLAG_C;
+    }
     return make_pair(0, 0);
 }
 
@@ -500,9 +510,14 @@ pair<uint16_t, uint16_t> RRC(State& state, Instruction& instruction, uint8_t* op
 pair<uint16_t, uint16_t> RL(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
-
-    state.f |= (value & 0x80) ? FLAG_C : 0;
-    value = value << 1;
+    uint8_t old_value = value;
+ 
+    value = (value << 1) | ((state.f & FLAG_C) ? 1 : 0);
+    if (old_value & 0x80) {
+        state.f |= FLAG_C;
+    } else {
+        state.f &= ~FLAG_C;
+    }
 
     write_operand(state, instruction.operand1, op_code, value);
     return make_pair(value, 0);
@@ -511,9 +526,14 @@ pair<uint16_t, uint16_t> RL(State& state, Instruction& instruction, uint8_t* op_
 pair<uint16_t, uint16_t> RR(State& state, Instruction& instruction, uint8_t* op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
-
-    state.f |= (value & 1) ? FLAG_C : 0;
-    value = value >> 1;
+    uint8_t old_value = value;
+ 
+    value = (value >> 1) | ((state.f & FLAG_C) ? 0x80 : 0);
+    if (old_value & 1) {
+        state.f |= FLAG_C;
+    } else {
+        state.f &= ~FLAG_C;
+    }
 
     write_operand(state, instruction.operand1, op_code, value);
     return make_pair(value, 0);
