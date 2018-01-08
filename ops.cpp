@@ -110,7 +110,7 @@ void update_flags(State& state, uint8_t* op_code,
     uint8_t half_carry_bit = is_16_bit ? 11 : 3;
     uint8_t carry_bit = is_16_bit ? 15 : 7;
 
-    update_flag(state, FLAG_Z, i.flags_ZNHC[0], result == 0);
+    update_flag(state, FLAG_Z, i.flags_ZNHC[0], (result & (is_16_bit ? 0xffff : 0xff)) == 0);
     update_flag(state, FLAG_N, i.flags_ZNHC[1], false);
     update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, state.f));
     if (!rotate_op && op_code[0] != 0x3f) {
