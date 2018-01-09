@@ -276,12 +276,24 @@ uint16_t pop_from_stack(State& state)
     uint8_t low = state.read_memory(state.sp++);
     uint8_t high = state.read_memory(state.sp++);
     return uint8_to_uint16(high, low);
+
+    if (state.stack_depth == 0) {
+	cout << "[WARNING]: Stack depth too low at " << hex << state.pc << ".\n";
+    } else {
+        state.stack_depth--;
+    }
 }
 
 void push_onto_stack(State& state, uint16_t value)
 {
     state.write_memory(--state.sp, value >> 8 & 0xff);
     state.write_memory(--state.sp, value & 0xff);
+
+    state.stack_depth++;
+
+    if (state.stack_depth > 0xff) {
+	cout << "[WARNING]: Stack depth too high at " << hex << state.pc << ".\n";
+    }
 }
 
 pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, uint8_t* op_code)

@@ -12,6 +12,7 @@ public:
 
     std::uint16_t sp = 0xfffe, pc = 0x100;
     std::uint32_t instructions_executed = 0;
+    std::uint32_t stack_depth = 0;
     bool interrupts_enabled = false;
 
     std::map<std::string, std::uint8_t*> registers {
