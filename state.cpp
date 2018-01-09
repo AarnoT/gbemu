@@ -44,19 +44,18 @@ void State::load_file_to_memory(string filename)
 
 uint8_t State::read_memory(uint16_t addr)
 {
-    if (true) {
-	return this->memory[addr];
-    } else {
-	cout << "[WARNING]: Invalid memory read at " << hex << addr << ".\n";
+    if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
+	cout << "[WARNING]: Invalid memory read from " << hex << this->pc << ".\n";
     }
-    return 0;
+
+    return this->memory[addr];
 }
 
 void State::write_memory(uint16_t addr, uint8_t value)
 {
-    if (true) {
-        this->memory[addr] = value;
-    } else {
-        cout << "[WARNING]: Invalid memory write at " << hex << addr << ".\n";
+    if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff) || addr <= 0x7fff) {
+        cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
     }
+
+    this->memory[addr] = value;
 }
