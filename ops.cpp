@@ -20,6 +20,8 @@ using std::int8_t;
 using std::int16_t;
 using std::int32_t;
 using std::int64_t;
+using std::cout;
+using std::hex;
 using std::make_pair;
 using std::map;
 using std::pair;
@@ -45,6 +47,10 @@ uint8_t execute_op(State& state)
 		       state.read_memory(state.pc + 2)};
     Instruction& instruction = op_code[0] == 0xcb ? ops_cb[op_code[1]] : ops[op_code[0]];
 
+    if (!address_executable(state.pc)) {
+	cout << "[WARNING]: PC at unexecutable address: " << hex << state.pc << ".\n";
+    }
+
     state.pc += instruction.bytes;
     uint16_t prev_pc = state.pc;
 
@@ -56,6 +62,25 @@ uint8_t execute_op(State& state)
     state.instructions_executed++;
 
     return instruction.cycles + (state.pc == prev_pc ? instruction.branch_cycles : 0);
+}
+
+bool address_executable(uint16_t addr)
+{
+    if (addr >= 0x104 && addr <= 0x14f) {
+        return false;
+    } else if (addr >= 0xe000 && addr <= 0xfdff) {
+        return false;
+    } else if (addr >= 0xfe00 && addr <= 0xfe9f) {
+	return false;
+    } else if (addr >= 0xfea0 && addr <= 0xfeff) {
+        return false;
+    } else if (addr >= 0xff00 && addr <= 0xff7f) {
+        return false;
+    } else if (addr == 0xffff) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 bool check_carry(pair<uint16_t, uint16_t> operands,

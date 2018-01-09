@@ -17,6 +17,7 @@ typedef std::pair<std::uint16_t, std::uint16_t> (*OpFunction)(State&, Instructio
 extern std::map<std::string, OpFunction> op_functions;
 
 std::uint8_t execute_op(State& state);
+bool address_executable(std::uint16_t addr);
 
 bool check_carry(std::pair<std::uint16_t, std::uint16_t> operands,
 		 std::uint8_t carry_bit, std::uint8_t flags);
