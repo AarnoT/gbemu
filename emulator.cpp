@@ -102,6 +102,8 @@ int main(int argc, char* argv[])
 		    }
                 }
 	    }
+
+	    handle_interrupts(state);
         }
     }
 
@@ -115,6 +117,24 @@ void handle_events()
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) {
 	    quit = true;
+	}
+    }
+}
+
+void handle_interrupts(State& state)
+{
+    if (!state.interrupts_enabled) {
+        return;
+    }
+    uint8_t IF = state.read_memory(0xff0f);
+    uint8_t IE = state.read_memory(0xffff);
+    for (uint8_t b = 0; b < 5; b++) {
+	if (IF & (1 << b) && IE & (1 << b)) {
+            state.write_memory(0xff0f, IF & ~(1 << b));
+	    state.interrupts_enabled = false;
+	    push_onto_stack(state, state.pc);
+	    state.pc = 0x40 + 0x8 * b;
+	    break;
 	}
     }
 }
