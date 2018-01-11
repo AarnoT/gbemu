@@ -298,10 +298,6 @@ void push_onto_stack(State& state, uint16_t value)
     state.write_memory(--state.sp, value & 0xff);
 
     state.stack_depth++;
-
-    if (state.stack_depth > 0xff) {
-	cout << "[WARNING]: Stack depth too high at " << hex << state.pc << ".\n";
-    }
 }
 
 pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, vector<uint8_t> op_code)
