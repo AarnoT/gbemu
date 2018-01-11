@@ -317,7 +317,14 @@ pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, vector<uint8
 {
     uint16_t num1 = 0, num2 = 0;
     uint16_t value = read_operand(state, instruction.operand2, op_code);
-    write_operand(state, instruction.operand1, op_code, value);
+
+    if (op_code[0] == 0x8) {
+        uint16_t addr = uint8_to_uint16(op_code[2], op_code[1]);
+	state.write_memory(addr, state.sp & 0xff);
+	state.write_memory(addr + 1, (state.sp >> 8) & 0xff);
+    } else {
+        write_operand(state, instruction.operand1, op_code, value);
+    }
 
     if (op_code[0] == 0xf8) {
         num1 = state.sp;
