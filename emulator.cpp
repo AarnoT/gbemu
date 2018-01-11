@@ -68,6 +68,8 @@ int main(int argc, char* argv[])
     uint32_t current_time_ms = last_time_ms;
     uint32_t cycles_to_catch_up = 0;
     uint8_t draw_line_counter = 0;
+    uint16_t timer_counter = 0;
+    uint16_t divider_counter = 0;
     while (!quit) {
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
@@ -84,6 +86,8 @@ int main(int argc, char* argv[])
  	    if (cycles_executed > cycles_to_catch_up + 20) {break;}
  	    cycles_to_catch_up -= cycles_executed;
 	    draw_line_counter += cycles_executed;
+	    timer_counter += cycles_executed;
+	    divider_counter += cycles_executed;
 
 	    handle_events();
 
@@ -101,6 +105,31 @@ int main(int argc, char* argv[])
 	                SDL_UpdateWindowSurface(window);
 		    }
                 }
+	    }
+
+            if (divider_counter >= 256) {
+                divider_counter -= 256;
+		state.write_memory(0xff04, state.read_memory(0xff04) + 1);
+	    }
+
+	    uint8_t timer_control = state.read_memory(0xff07);
+	    if (timer_control & 0x4) {
+	        uint16_t cycles = 0;
+	        if ((timer_control & 0x3) == 0) {cycles = 1024;}
+	        if ((timer_control & 0x3) == 1) {cycles = 16;}
+	        if ((timer_control & 0x3) == 2) {cycles = 64;}
+	        if ((timer_control & 0x3) == 3) {cycles = 256;}
+
+		uint8_t timer = state.read_memory(0xff05);
+		if (timer_counter >= cycles) {
+                    timer_counter -= cycles;
+		    timer++;
+		    if (timer == 0) {
+                        timer = state.read_memory(0xff06);
+			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x4);
+		    }
+		    state.write_memory(0xff05, timer);
+		}
 	    }
 
 	    handle_interrupts(state);
