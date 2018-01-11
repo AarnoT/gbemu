@@ -106,6 +106,10 @@ int main(int argc, char* argv[])
 		    draw_line_counter -= 114;
 
 		    if (state.read_memory(0xff44) == 144) {
+			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x1);
+			if (state.read_memory(0xffff) & 0x1) {
+			    state.halt_mode = false;
+			}
 	                SDL_UpdateWindowSurface(window);
 		    }
                 }
@@ -131,7 +135,9 @@ int main(int argc, char* argv[])
 		    if (timer == 0) {
                         timer = state.read_memory(0xff06);
 			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x4);
-			state.halt_mode = false;
+			if (state.read_memory(0xffff) & 0x4) {
+			    state.halt_mode = false;
+			}
 		    }
 		    state.write_memory(0xff05, timer);
 		}
