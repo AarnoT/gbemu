@@ -71,7 +71,7 @@ uint8_t execute_op(State& state)
     state.pc += instruction.bytes;
     uint16_t prev_pc = state.pc;
 
-    set<uint8_t> ops_16b {0x09, 0x19, 0x29, 0x39, 0xe8, 0xf8};
+    set<uint8_t> ops_16b {0x09, 0x19, 0x29, 0x39};
     bool is_16_bit = ops_16b.find(op_code[0]) != ops_16b.end();
 
     auto operands = op_functions[instruction.name](state, instruction, op_code);
@@ -169,19 +169,10 @@ void update_flags(State& state, vector<uint8_t> op_code,
 	}
     }
 
-    uint8_t flags = state.f;
-    if (op_code[0] == 0xf8 || op_code[0] == 0xe8) {
-	if (num2 & 0x80) {
-	    flags |= FLAG_N;
-	    operands.second = 128 - num2;
-	} else {
-	    flags &= ~FLAG_N;
-	}
-    }
-    update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, flags));
+    update_flag(state, FLAG_H, i.flags_ZNHC[2], check_carry(operands, half_carry_bit, state.f));
     if (!rotate_op && i.name != "CCF" && i.name != "DAA" && i.name != "SRA") {
 	/* Carry flag is set elsewhere for rotation/shift ops. */
-        update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, carry_bit, flags));
+        update_flag(state, FLAG_C, i.flags_ZNHC[3], check_carry(operands, carry_bit, state.f));
     }
 }
 
