@@ -33,7 +33,7 @@ map<string, OpFunction> op_functions {
     {"NOP", &NOP}, {"STOP", &NOP}, {"JR", &JR}, {"LD", &LD}, {"INC", &INC}, {"DEC", &DEC},
     {"RLCA", &RLCA}, {"RLA", &RLA}, {"DAA", &DAA}, {"SCF", &NOP}, {"ADD", &ADD}, 
     {"RRCA", &RRCA}, {"RRA", &RRA}, {"CPL", &CPL}, {"CCF", &CCF}, {"ADC", &ADC},
-    {"HALT", &NOP}, {"SUB", &SUB}, {"SBC", &SBC}, {"AND", &AND}, {"XOR", &XOR}, {"OR", OR},
+    {"HALT", &HALT}, {"SUB", &SUB}, {"SBC", &SBC}, {"AND", &AND}, {"XOR", &XOR}, {"OR", OR},
     {"CP", &CP}, {"RET", &RET}, {"LDH", &LD}, {"POP", &POP}, {"JP", &JP}, {"DI", &DI},
     {"CALL", &CALL}, {"PUSH", &PUSH}, {"RST", &RST}, {"RETI", &RETI}, {"EI", &EI},
     {"RLC", &RLC}, {"RRC", &RRC}, {"RL", &RL}, {"RR", &RR}, {"SLA", &SLA}, {"SRA", &SRA},
@@ -737,5 +737,11 @@ pair<uint16_t, uint16_t> EI(State& state, Instruction& instruction, vector<uint8
 pair<uint16_t, uint16_t> DI(State& state, Instruction& instruction, vector<uint8_t> op_code)
 {
     state.interrupts_enabled = false;
+    return make_pair(0, 0);
+}
+
+pair<uint16_t, uint16_t> HALT(State& state, Instruction& instruction, vector<uint8_t> op_code)
+{
+    state.halt_mode = true;
     return make_pair(0, 0);
 }

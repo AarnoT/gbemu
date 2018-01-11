@@ -75,3 +75,4 @@ std::pair<std::uint16_t, std::uint16_t> NOP(State& state, Instruction& instructi
 std::pair<std::uint16_t, std::uint16_t> CCF(State& state, Instruction& instruction, std::vector<std::uint8_t> op_code);
 std::pair<std::uint16_t, std::uint16_t> EI(State& state, Instruction& instruction, std::vector<std::uint8_t> op_code);
 std::pair<std::uint16_t, std::uint16_t> DI(State& state, Instruction& instruction, std::vector<std::uint8_t> op_code);
+std::pair<std::uint16_t, std::uint16_t> HALT(State& state, Instruction& instruction, std::vector<std::uint8_t> op_code);

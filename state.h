@@ -14,6 +14,7 @@ public:
     std::uint32_t instructions_executed = 0;
     std::uint32_t stack_depth = 0;
     bool interrupts_enabled = false;
+    bool halt_mode = false;
 
     std::map<std::string, std::uint8_t*> registers {
         {"A", &this->a},

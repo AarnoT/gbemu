@@ -76,7 +76,10 @@ int main(int argc, char* argv[])
 	last_time_ms = current_time_ms;
 
 	while (!quit && cycles_to_catch_up > 0) {
- 	    uint8_t cycles_executed = execute_op(state) / 4;
+            uint8_t cycles_executed = 1;
+            if (!state.halt_mode) {
+ 	        cycles_executed = execute_op(state) / 4;
+	    }
 
             if (state.read_memory(0xff02) == 0x81) {
 	        state.write_memory(0xff02, 0);
@@ -127,6 +130,7 @@ int main(int argc, char* argv[])
 		    if (timer == 0) {
                         timer = state.read_memory(0xff06);
 			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x4);
+			state.halt_mode = false;
 		    }
 		    state.write_memory(0xff05, timer);
 		}
@@ -161,6 +165,7 @@ void handle_interrupts(State& state)
 	if (IF & (1 << b) && IE & (1 << b)) {
             state.write_memory(0xff0f, IF & ~(1 << b));
 	    state.interrupts_enabled = false;
+	    state.halt_mode = false;
 	    push_onto_stack(state, state.pc);
 	    state.pc = 0x40 + 0x8 * b;
 	    break;
