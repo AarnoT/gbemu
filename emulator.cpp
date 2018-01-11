@@ -74,6 +74,7 @@ int main(int argc, char* argv[])
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
 	last_time_ms = current_time_ms;
+	handle_events();
 
 	while (!quit && cycles_to_catch_up > 0) {
             uint8_t cycles_executed = 1;
