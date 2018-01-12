@@ -2,6 +2,7 @@
 #include "state.h"
 
 #include <cstdint>
+#include <iostream>
 #include <SDL2/SDL.h>
 
 using std::uint8_t;
@@ -38,6 +39,7 @@ void draw_background_tile(State& state, SDL_Surface* surface, uint32_t tile_num)
     uint32_t tile_x = tile_num % 32, tile_y = (tile_num - tile_num % 32) / 32;
     uint32_t* pixels = (uint32_t*) surface->pixels;
     uint16_t tile_pointer = get_tile_pointer(state, tile_num);
+    if (tile_pointer != 0x8200) std::cout << std::hex << tile_pointer << "\n";
     for (int i = 0; i < 16; i += 2) {
         uint8_t value1 = state.read_memory(tile_pointer + i);
         uint8_t value2 = state.read_memory(tile_pointer + i + 1);
@@ -66,7 +68,7 @@ uint16_t get_tile_pointer(State& state, uint32_t tile_num)
     if (bg_data_area == 1) {
 	return 0x8000 + tile_code * 0x10;
     } else {
-	if (tile_num < 0x80) {
+	if (tile_code >= 0x80) {
             return 0x8800 + (tile_code - 0x80) * 0x10;
 	} else {
 	    return 0x9000 + tile_code * 0x10;
