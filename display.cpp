@@ -1,13 +1,18 @@
 #include "display.h"
 #include "state.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <vector>
+
 #include <SDL2/SDL.h>
 
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
+using std::sort;
+using std::vector;
 
 void draw_display_buffer(State& state, SDL_Surface* display_buffer, bool window)
 {
@@ -30,9 +35,88 @@ void draw_display_line(State& state, SDL_Surface* display_buffer, SDL_Surface* d
         uint32_t* window_pixels = (uint32_t*) window_surface->pixels;
 
         for (uint8_t display_column = 0; display_column < 160; display_column++) {
-	    display_pixels[display_row*160 + display_column] =
-	        buffer_pixels[(display_row + scroll_y) % 256 * 256 + (display_column + scroll_x) % 256];
+            uint32_t value = SDL_MapRGB(display_surface->format, 0xff, 0xff, 0xff);
+	    if ((lcdc & 0x1) != 0) {
+                value = buffer_pixels[(display_row + scroll_y) % 256 * 256 + (display_column + scroll_x) % 256];
+	    }
+	    display_pixels[display_row*160 + display_column] = value;
         }
+	if ((lcdc & 0x2) != 0) {
+            uint8_t obp0 = state.read_memory(0xff48);
+            uint8_t obp1 = state.read_memory(0xff49);
+            uint8_t palette0[4];
+            uint8_t palette1[4];
+            for (uint8_t i = 0; i < 4; i++) {
+                palette0[i] = 255 - 85 * ((obp0 & (3 << (i * 2))) >> (i * 2));
+            }
+            for (uint8_t i = 0; i < 4; i++) {
+                palette1[i] = 255 - 85 * ((obp1 & (3 << (i * 2))) >> (i * 2));
+            }
+
+            vector<uint8_t> sprite_ids(40, 0);
+	    for (uint8_t n = 0; n < 40; n++) {
+                sprite_ids[n] = n;
+	    }
+	    std::sort(sprite_ids.begin(), sprite_ids.end(),
+                [&state](uint8_t id1, uint8_t id2) {
+		    uint8_t tile_code1 = state.read_memory(0xfe02 + 4 * id1);
+                    uint8_t tile_code2 = state.read_memory(0xfe02 + 4 * id2);
+                    uint8_t x1 = state.read_memory(0xfe01 + 4 * id1);
+                    uint8_t x2 = state.read_memory(0xfe01 + 4 * id2);
+		    return x1 > x2 || (x1 == x2 && tile_code1 > tile_code2);
+		}
+            );
+
+	    uint8_t sprite_height = (lcdc & 0x4) ? 16 : 8;
+	    uint8_t sprite_counter = 0;
+	    for (uint8_t sprite_id : sprite_ids) {
+		int16_t sprite_y = (int16_t) state.read_memory(0xfe00 + 4 * sprite_id) - 16;
+		int16_t sprite_x = (int16_t) state.read_memory(0xfe01 + 4 * sprite_id) - 8;
+		uint8_t tile_id = state.read_memory(0xfe02 + 4 * sprite_id);
+		if (sprite_height == 16) {
+                    tile_id &= 0xfe;
+		}
+		uint8_t sprite_attrs = state.read_memory(0xfe03 + 4 * sprite_id);
+
+                if (sprite_y <= display_row && sprite_y + sprite_height - 1 >= display_row) {
+                    sprite_counter++;
+		} else {
+                    continue;
+		}
+
+		uint16_t tile_pointer = 0x8000 + 16 * tile_id;
+		uint8_t sprite_row = display_row - sprite_y;
+		if (sprite_attrs & 0x40) {
+                    sprite_row = sprite_height - sprite_row - 1;
+		}
+
+                uint8_t byte1 = state.read_memory(tile_pointer + sprite_row * 2);
+                uint8_t byte2 = state.read_memory(tile_pointer + sprite_row * 2 + 1);
+		uint8_t x_offset1 = (sprite_x < 0) ? -sprite_x : 0;
+		uint8_t x_offset2 = sprite_x + 7 - 159;
+		if (sprite_x + 7 < 159) {x_offset2 = 0;}
+
+                for (int j = 7 - x_offset1; j >= x_offset2; j--) {
+                    uint8_t x = j;
+                    if (sprite_attrs & 0x20) {
+                        x = 7 - j;
+		    }
+                    uint8_t shade = (byte1 & (1 << x));
+		    if (x != 0) {
+                        shade = shade >> (x - 1);
+		    } else {
+                        shade = shade << 1;
+		    }
+	            shade |= (byte2 & (1 << x)) >> x;
+		    if (shade == 0) {continue;}
+                    shade = (sprite_attrs & 0x10) ? palette1[shade] : palette0[shade];
+                    display_pixels[display_row * 160 + sprite_x + (7 - j)]
+		        = SDL_MapRGB(display_surface->format, shade, shade, shade);
+	        }
+
+                if (sprite_counter >= 10) {break;}
+	    }
+	}
 	if ((lcdc & 0x20) != 0 && window_x <= 166 && window_y <= display_row) {
 	    if (window_x <= 7) {
                 window_x = 0;
@@ -40,7 +124,11 @@ void draw_display_line(State& state, SDL_Surface* display_buffer, SDL_Surface* d
                 window_x -= 7;
 	    }
             for (uint8_t x = window_x; x < 160; x++) {
-                display_pixels[display_row*160 + x] = window_pixels[(display_row - window_y) * 256 + x - window_x];
+                uint32_t value = SDL_MapRGB(display_surface->format, 0xff, 0xff, 0xff);
+	        if ((lcdc & 0x1) != 0) {
+                    value = window_pixels[(display_row - window_y) * 256 + x - window_x];
+		}
+                display_pixels[display_row*160 + x] = value;
 	    }
 	}
     }
