@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
     }
     SDL_Surface* display_surface = SDL_GetWindowSurface(window);
     SDL_Surface* display_buffer = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
+    SDL_Surface* window_surface = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
 
     State state;
     state.load_file_to_rom(argv[1]);
@@ -99,10 +100,13 @@ int main(int argc, char* argv[])
 	    if ((state.read_memory(0xff40) & 0x80) == 0x80) {
 		if (draw_line_counter >= 114) {
                     if (state.read_memory(0xff44) == 0) {
-	                draw_display_buffer(state, display_buffer);
+	                draw_display_buffer(state, display_buffer, false);
+			if (state.read_memory(0xff40) & 0x20) {
+	                    draw_display_buffer(state, window_surface, true);
+			}
 	             }
  
-		    draw_display_line(state, display_buffer, display_surface);
+		    draw_display_line(state, display_buffer, display_surface, window_surface);
 		    draw_line_counter -= 114;
 
 		    if (state.read_memory(0xff44) == 144) {
