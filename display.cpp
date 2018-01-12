@@ -50,6 +50,11 @@ void draw_display_line(State& state, SDL_Surface* display_buffer, SDL_Surface* d
 
 void draw_background_tile(State& state, SDL_Surface* surface, uint32_t tile_num, bool window)
 {
+    uint8_t bgp = state.read_memory(0xff47);
+    uint8_t palette[4];
+    for (uint8_t i = 0; i < 4; i++) {
+        palette[i] = 255 - 85 * ((bgp & (3 << (i * 2))) >> (i * 2));
+    }
     uint32_t tile_x = tile_num % 32, tile_y = (tile_num - tile_num % 32) / 32;
     uint32_t* pixels = (uint32_t*) surface->pixels;
     uint16_t tile_pointer = get_tile_pointer(state, tile_num, window);
@@ -59,7 +64,7 @@ void draw_background_tile(State& state, SDL_Surface* surface, uint32_t tile_num,
         for (int j = 7; j >= 0; j --) {
             uint8_t shade = (value1 & (1 << j)) >> (j - 1);
 	    shade |= (value2 & (1 << j)) >> j;
-            shade = 255 - shade * 85;
+            shade = palette[shade];
             pixels[tile_y * 2048 + i * 128 + tile_x * 8 + 7 - j] = SDL_MapRGB(surface->format, shade, shade, shade);
 	}
     }
