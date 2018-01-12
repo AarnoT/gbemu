@@ -87,11 +87,11 @@ int main(int argc, char* argv[])
 	        cout << state.read_memory(0xff01);
 	    }
 
- 	    if (cycles_executed > cycles_to_catch_up + 20) {break;}
  	    cycles_to_catch_up -= cycles_executed;
 	    draw_line_counter += cycles_executed;
 	    timer_counter += cycles_executed;
 	    divider_counter += cycles_executed;
+ 	    if (cycles_to_catch_up < 20) {break;}
 
 	    handle_events();
 
