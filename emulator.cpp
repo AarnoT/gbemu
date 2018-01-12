@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
 	last_time_ms = current_time_ms;
-	handle_events();
+	handle_events(state);
 
 	while (!quit && cycles_to_catch_up > 0) {
             uint8_t cycles_executed = 1;
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
 	    divider_counter += cycles_executed;
  	    if (cycles_to_catch_up < 20) {break;}
 
-	    handle_events();
+	    handle_events(state);
 
 	    // 0xff40 is the LCD control register.
 	    if ((state.read_memory(0xff40) & 0x80) == 0x80) {
@@ -143,6 +143,22 @@ int main(int argc, char* argv[])
 		}
 	    }
 
+	    if (state.read_memory(0xff00) == 0x20) {
+                const uint8_t* keyboard = SDL_GetKeyboardState(0);
+                uint8_t down = keyboard[SDL_SCANCODE_DOWN];
+                uint8_t up = keyboard[SDL_SCANCODE_UP];
+                uint8_t left = keyboard[SDL_SCANCODE_LEFT];
+                uint8_t right = keyboard[SDL_SCANCODE_RIGHT];
+		state.write_memory(0xff00, ~((down << 3) | (up << 2) | (left << 1) | right));
+	    } else if (state.read_memory(0xff00) == 0x10) {
+                const uint8_t* keyboard = SDL_GetKeyboardState(0);
+                uint8_t start = keyboard[SDL_SCANCODE_Z];
+                uint8_t select = keyboard[SDL_SCANCODE_X];
+                uint8_t b = keyboard[SDL_SCANCODE_A];
+                uint8_t a = keyboard[SDL_SCANCODE_S];
+		state.write_memory(0xff00, ~((start << 3) | (select << 2) | (b << 1) | a));
+	    }
+
 	    handle_interrupts(state);
         }
     }
@@ -151,12 +167,28 @@ int main(int argc, char* argv[])
     SDL_Quit();
 }
 
-void handle_events()
+void handle_events(State& state)
 {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) {
 	    quit = true;
+	} else if (e.type == SDL_KEYDOWN) {
+            switch (e.key.keysym.sym) {
+                case SDLK_DOWN:
+                case SDLK_UP:
+                case SDLK_LEFT:
+                case SDLK_RIGHT:
+                case SDLK_z:
+                case SDLK_x:
+                case SDLK_a:
+                case SDLK_b:
+		    state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x10);
+		    if (state.read_memory(0xffff) & 0x10) {
+		        state.halt_mode = false;
+		    }
+                    break;
+	    }
 	}
     }
 }
