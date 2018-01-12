@@ -17,6 +17,11 @@ public:
     bool halt_mode = false;
     bool stop_mode = false;
 
+    std::uint16_t rom_bank = 0;
+    std::uint8_t ram_bank = 0;
+    bool ram_enabled = false;
+    bool ram_bank_mode = false;
+
     std::map<std::string, std::uint8_t*> registers {
         {"A", &this->a},
         {"B", &this->b},
@@ -41,9 +46,12 @@ public:
 
     void dump_memory_to_file(std::string filename);
     void load_file_to_memory(std::string filename);
+    void load_file_to_rom(std::string filename);
     std::uint8_t read_memory(std::uint16_t addr);
     void write_memory(std::uint16_t addr, std::uint8_t value);
 private:
-    std::uint8_t* memory;
+    std::uint8_t* memory = nullptr;
+    std::uint8_t* ram = nullptr;
+    std::uint8_t* rom = nullptr;
 };
 
