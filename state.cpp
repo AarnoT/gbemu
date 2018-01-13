@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -16,6 +17,8 @@ using std::istreambuf_iterator;
 using std::ofstream;
 using std::ostreambuf_iterator;
 using std::string;
+using std::time;
+using std::time_t;
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
@@ -83,6 +86,7 @@ uint8_t State::read_memory(uint16_t addr)
 
     uint8_t mbc = this->rom[0x147];
     if (mbc >= 1 && mbc <= 3) {mbc = 1;}
+    if (mbc >= 0xf && mbc <= 0x13) {mbc = 3;}
     if (mbc >= 0x19 && mbc <= 0x1e) {mbc = 5;}
 
     if (addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) {
@@ -92,6 +96,8 @@ uint8_t State::read_memory(uint16_t addr)
             return this->rom[addr];
 	} else if (mbc == 1) {
             return this->read_mbc1(addr);
+	} else if (mbc == 3) {
+            return this->read_mbc3(addr);
 	} else if (mbc == 5) {
             return this->read_mbc5(addr);
 	}
@@ -119,6 +125,34 @@ uint8_t State::read_mbc1(uint16_t addr)
     }
 }
 
+uint8_t State::read_mbc3(uint16_t addr)
+{
+    if (addr >= 0x4000 && addr <= 0x7fff) {
+        return this->rom[0x4000 * this->rom_bank + addr - 0x4000];
+    } else {
+        if (!this->ram_enabled) {
+            return 0xff;
+        } else if (this->ram_bank >= 0x8 && this->ram_bank <= 0xc) {
+            switch (this->ram_bank) {
+            case 0x8: return this->rtc_seconds;
+            case 0x9: return this->rtc_minutes;
+            case 0xa: return this->rtc_hours;
+            case 0xb: return this->rtc_days & 0xff;
+            case 0xc:
+                {
+                    uint8_t days_bit8 = (rtc_days & 0x100) >> 8;
+		    return this->rtc_flags | days_bit8;
+		}
+	    }
+	} else if (this->ram == nullptr) {
+            return 0xff;
+	} else if (this->ram_bank <= 3) {
+            return this->ram[0x2000 * this->ram_bank + addr - 0xa000];
+	}
+    }
+    return 0xff;
+}
+
 uint8_t State::read_mbc5(uint16_t addr)
 {
     if (addr >= 0x4000 && addr <= 0x7fff) {
@@ -136,10 +170,13 @@ void State::write_memory(uint16_t addr, uint8_t value)
 {
     uint8_t mbc = this->rom[0x147];
     if (mbc >= 1 && mbc <= 3) {mbc = 1;}
+    if (mbc >= 0xf && mbc <= 0x13) {mbc = 3;}
     if (mbc >= 0x19 && mbc <= 0x1e) {mbc = 5;}
 
     if ((addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 1) {
         this->write_mbc1(addr, value);
+    } else if ((addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 3) {
+        this->write_mbc3(addr, value);
     } else if ((addr <= 0x5fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 5) {
         this->write_mbc5(addr, value);
     } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
@@ -170,9 +207,51 @@ void State::write_mbc1(uint16_t addr, uint8_t value)
 	}
     } else if (addr >= 0x6000 && addr <= 0x7fff) {
         this->ram_bank_mode = (value & 0x1) != 0;
-    } else if (this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
+    } else if (this->ram_enabled && this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
         uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
         this->ram[0x2000 * effective_ram_bank + addr - 0xa000] = value;
+    }
+}
+
+void State::write_mbc3(uint16_t addr, uint8_t value)
+{
+    if (addr <= 0x1fff) {
+        this->ram_enabled = value == 0xa;
+    } else if (addr >= 0x2000 && addr <= 0x3fff) {
+	this->rom_bank = value & 0x7f;
+    } else if (addr >= 0x4000 && addr <= 0x5fff) {
+        this->ram_bank = value;
+    } else if (addr >= 0x6000 && addr <= 0x7fff) {
+        if (this->prev_rtc_latch == 0 && value == 1) {
+            time_t now = time(0);
+	    this->rtc_seconds = now % 60;
+	    this->rtc_minutes = (now / 60) % 60;
+	    this->rtc_hours = (now / 3600) % 24;
+	    uint16_t prev_rtc_days = this->rtc_days;
+	    this->rtc_days = (now / 3600 / 24) % 512;
+	    if (rtc_days < prev_rtc_days) {
+                this->rtc_flags |= 0x80;
+	    }
+	}
+	this->prev_rtc_latch = value;
+    } else if (this->ram_enabled && addr >= 0xa000 && addr <= 0xbfff) {
+        if (this->ram_bank >= 0x8 && this->ram_bank <= 0xc) {
+            switch (this->ram_bank) {
+            case 0x8: this->rtc_seconds = value; break;
+            case 0x9: this->rtc_minutes = value; break;
+            case 0xa: this->rtc_hours = value; break;
+            case 0xb: this->rtc_days = (this->rtc_days & 0xff00) | value; break;
+            case 0xc:
+                {
+		    this->rtc_flags = value;
+		    this->rtc_days &= 0x00ff;
+		    this->rtc_days |= (value & 0x1) << 8;
+		}
+                break;  
+	    }
+	} else if (this->ram != nullptr && this->ram_bank <= 3) {
+            this->ram[0x2000 * this->ram_bank + addr - 0xa000] = value;
+	}
     }
 }
 
@@ -188,7 +267,7 @@ void State::write_mbc5(uint16_t addr, uint8_t value)
 	this->rom_bank |= (value & 0x1) << 8;
     } else if (addr >= 0x4000 && addr <= 0x5fff) {
         this->ram_bank = value & 0x0f;
-    } else if (this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
+    } else if (this->ram_enabled && this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
         this->ram[0x2000 * this->ram_bank + addr - 0xa000] = value;
     }
 }

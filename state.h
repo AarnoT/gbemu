@@ -22,6 +22,13 @@ public:
     bool ram_enabled = false;
     bool ram_bank_mode = false;
 
+    uint8_t rtc_seconds = 0;
+    uint8_t rtc_minutes = 0;
+    uint8_t rtc_hours = 0;
+    uint8_t rtc_days = 0;
+    uint8_t rtc_flags = 0;
+    uint8_t prev_rtc_latch = 0xff;
+
     std::map<std::string, std::uint8_t*> registers {
         {"A", &this->a},
         {"B", &this->b},
@@ -49,9 +56,11 @@ public:
     void load_file_to_rom(std::string filename);
     std::uint8_t read_memory(std::uint16_t addr);
     std::uint8_t read_mbc1(std::uint16_t addr);
+    std::uint8_t read_mbc3(std::uint16_t addr);
     std::uint8_t read_mbc5(std::uint16_t addr);
     void write_memory(std::uint16_t addr, std::uint8_t value);
     void write_mbc1(std::uint16_t addr, std::uint8_t value);
+    void write_mbc3(std::uint16_t addr, std::uint8_t value);
     void write_mbc5(std::uint16_t addr, std::uint8_t value);
 private:
     std::uint8_t* memory = nullptr;
