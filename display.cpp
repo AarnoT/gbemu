@@ -150,7 +150,12 @@ void draw_background_tile(State& state, SDL_Surface* surface, uint32_t tile_num,
         uint8_t value1 = state.read_memory(tile_pointer + i);
         uint8_t value2 = state.read_memory(tile_pointer + i + 1);
         for (int j = 7; j >= 0; j --) {
-            uint8_t shade = (value1 & (1 << j)) >> (j - 1);
+            uint8_t shade = (value1 & (1 << j));
+	    if (j != 0) {
+                shade = shade >> (j - 1);
+	    } else {
+                shade = shade << 1;
+	    }
 	    shade |= (value2 & (1 << j)) >> j;
             shade = palette[shade];
             pixels[tile_y * 2048 + i * 128 + tile_x * 8 + 7 - j] = SDL_MapRGB(surface->format, shade, shade, shade);
