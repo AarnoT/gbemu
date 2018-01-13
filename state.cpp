@@ -131,6 +131,8 @@ void State::write_memory(uint16_t addr, uint8_t value)
     } else if (mbc == 1 && addr >= 0xa000 && addr <= 0xbfff) {
         uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
         this->ram[0x2000 * effective_ram_bank + addr - 0xa000] = value;
+    } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
+        copy(this->memory + (value << 8), this->memory + (value << 8) + 0x100, this->memory + 0xfe00);
     } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
         cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
     } else {
