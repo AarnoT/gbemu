@@ -84,25 +84,35 @@ uint8_t State::read_memory(uint16_t addr)
     uint8_t mbc = this->rom[0x147];
     if (mbc >= 1 && mbc <= 3) {mbc = 1;}
 
-    if (addr <= 0x3fff) {
-        return this->rom[addr];
-    } else if (mbc == 0 && addr <= 0x7fff) {
-        return this->rom[addr];
-    } else if (mbc == 1 && addr >= 0x4000 && addr <= 0x7fff) {
-        uint8_t effective_rom_bank = this->ram_bank_mode ? (this->rom_bank & 0x1f) : this->rom_bank;
-        return this->rom[0x4000 * effective_rom_bank + addr - 0x4000];
-    } else if (mbc == 1 && addr >= 0xa000 && addr <= 0xbfff) {
-        if (!this->ram_enabled || this->ram == nullptr) {
-            return 0xff;
-	} else {
-            uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
-            return this->ram[0x2000 * effective_ram_bank + addr - 0xa000];
+    if (addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) {
+        if (addr <= 0x3fff) {
+            return this->rom[addr];
+        } else if (mbc == 0 && addr <= 0x7fff) {
+            return this->rom[addr];
+	} else if (mbc == 1) {
+            return this->read_mbc1(addr);
 	}
     } else {
         if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
 	    cout << "[WARNING]: Invalid memory read from " << hex << this->pc << ".\n";
         }
         return this->memory[addr];
+    }
+    return 0;
+}
+
+uint8_t State::read_mbc1(uint16_t addr)
+{
+    if (addr >= 0x4000 && addr <= 0x7fff) {
+        uint8_t effective_rom_bank = this->ram_bank_mode ? (this->rom_bank & 0x1f) : this->rom_bank;
+        return this->rom[0x4000 * effective_rom_bank + addr - 0x4000];
+    } else {
+        if (!this->ram_enabled || this->ram == nullptr) {
+            return 0xff;
+	} else {
+            uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
+            return this->ram[0x2000 * effective_ram_bank + addr - 0xa000];
+	}
     }
 }
 
@@ -111,14 +121,27 @@ void State::write_memory(uint16_t addr, uint8_t value)
     uint8_t mbc = this->rom[0x147];
     if (mbc >= 1 && mbc <= 3) {mbc = 1;}
 
-    if (mbc == 1 && addr <= 0x1fff) {
+    if ((addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 1) {
+        this->write_mbc1(addr, value);
+    } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
+        copy(this->memory + (value << 8), this->memory + (value << 8) + 0x100, this->memory + 0xfe00);
+    } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
+        cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
+    } else {
+        this->memory[addr] = value;
+    }
+}
+
+void State::write_mbc1(uint16_t addr, uint8_t value)
+{
+    if (addr <= 0x1fff) {
         this->ram_enabled = (value & 0xa) == 0xa;
-    } else if (mbc == 1 && addr >= 0x2000 && addr <= 0x3fff) {
+    } else if (addr >= 0x2000 && addr <= 0x3fff) {
         value &= 0x1f;
 	if ((value & 0xf) == 0) {value |= 1;}
 	this->rom_bank &= ~0x1f;
 	this->rom_bank |= value;
-    } else if (mbc == 1 && addr >= 0x4000 && addr <= 0x5fff) {
+    } else if (addr >= 0x4000 && addr <= 0x5fff) {
         if (this->ram_bank_mode) {
             this->ram_bank = value & 0x3;
 	} else {
@@ -126,16 +149,10 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	    this->rom_bank &= ~0x60;
 	    this->rom_bank |= value;
 	}
-    } else if (mbc == 1 && addr >= 0x6000 && addr <= 0x7fff) {
+    } else if (addr >= 0x6000 && addr <= 0x7fff) {
         this->ram_bank_mode = (value & 0x1) != 0;
-    } else if (mbc == 1 && this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
+    } else if (this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
         uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
         this->ram[0x2000 * effective_ram_bank + addr - 0xa000] = value;
-    } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
-        copy(this->memory + (value << 8), this->memory + (value << 8) + 0x100, this->memory + 0xfe00);
-    } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
-        cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
-    } else {
-        this->memory[addr] = value;
     }
 }
