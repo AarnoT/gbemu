@@ -96,27 +96,48 @@ int main(int argc, char* argv[])
 
 	    handle_events(state);
 
-	    // 0xff40 is the LCD control register.
-	    if ((state.read_memory(0xff40) & 0x80) == 0x80) {
+	    uint8_t lcdc = state.read_memory(0xff40);
+	    if ((lcdc & 0x80) == 0x80) {
 		if (draw_line_counter >= 114) {
                     if (state.read_memory(0xff44) == 0) {
 	                draw_display_buffer(state, display_buffer, false);
-			if (state.read_memory(0xff40) & 0x20) {
+			if (lcdc & 0x20) {
 	                    draw_display_buffer(state, window_surface, true);
 			}
-	             }
+	            }
  
 		    draw_display_line(state, display_buffer, display_surface, window_surface);
 		    draw_line_counter -= 114;
+		    state.write_memory(0xff41, state.read_memory(0xff41) | 0x3);
+
+		    uint8_t lcd_stat = state.read_memory(0xff41);
+		    bool lyc = state.read_memory(0xff44) == state.read_memory(0xff45);
+                    if ((lcd_stat & 0x8) || (lcd_stat & 0x20) || ((lcd_stat & 0x40) && lyc)) {
+			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x2);
+			if (state.read_memory(0xffff) & 0x2) {
+			    state.halt_mode = false;
+			}
+		    }
+		    if (lyc) {
+		        state.write_memory(0xff41, state.read_memory(0xff41) | 0x4);
+		    } else {
+		        state.write_memory(0xff41, state.read_memory(0xff41) & ~0x4);
+		    }
 
 		    if (state.read_memory(0xff44) == 144) {
 			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x1);
-			if (state.read_memory(0xffff) & 0x1) {
+			if (lcd_stat & 0x10) {
+			    state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x2);
+			}
+			if ((state.read_memory(0xffff) & 0x1)
+				|| ((state.read_memory(0xffff) & 0x2) && (lcd_stat & 0x10))) {
 			    state.halt_mode = false;
 			}
 	                SDL_UpdateWindowSurface(window);
 		    }
-                }
+                } else {
+		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x3);
+		}
 	    }
 
             if (divider_counter >= 256) {
