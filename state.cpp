@@ -95,7 +95,7 @@ uint8_t State::read_memory(uint16_t addr)
         uint8_t effective_rom_bank = this->ram_bank_mode ? (this->rom_bank & 0x1f) : this->rom_bank;
         return this->rom[0x4000 * effective_rom_bank + addr - 0x4000];
     } else if (mbc == 1 && addr >= 0xa000 && addr <= 0xbfff) {
-        if (!this->ram_enabled) {
+        if (!this->ram_enabled || this->ram == nullptr) {
             return 0xff;
 	} else {
             uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
@@ -128,7 +128,7 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	}
     } else if (mbc == 1 && addr >= 0x6000 && addr <= 0x7fff) {
         this->ram_bank_mode = (value & 0x1) != 0;
-    } else if (mbc == 1 && addr >= 0xa000 && addr <= 0xbfff) {
+    } else if (mbc == 1 && this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
         uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
         this->ram[0x2000 * effective_ram_bank + addr - 0xa000] = value;
     } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
