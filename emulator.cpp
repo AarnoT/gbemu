@@ -78,8 +78,9 @@ int main(int argc, char* argv[])
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
 	last_time_ms = current_time_ms;
 	handle_events(state);
+	if ((state.read_memory(0xff00) & 0xf) != 0xf || state.read_memory(0xff0f) & 0x10) {state.stop_mode = false;}
 
-	while (!quit && cycles_to_catch_up > 0) {
+	while (!quit && cycles_to_catch_up > 20 && !state.stop_mode) {
             uint8_t cycles_executed = 1;
             if (!state.halt_mode) {
  	        cycles_executed = execute_op(state) / 4;
