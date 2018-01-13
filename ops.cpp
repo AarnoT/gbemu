@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,7 +25,7 @@ using std::hex;
 using std::make_pair;
 using std::map;
 using std::pair;
-using std::set;
+using std::unordered_set;
 using std::string;
 using std::vector;
 
@@ -40,10 +40,14 @@ map<string, OpFunction> op_functions {
     {"SWAP", &SWAP}, {"SRL", &SRL}, {"BIT", &BIT}, {"RES", &RES}, {"SET", &SET} 
 };
 
+unordered_set<uint8_t> invalid_ops = {0xd3, 0xdd, 0xdb, 0xe3, 0xe4, 0xeb,
+	                              0xec, 0xed, 0xf4, 0xfc, 0xfd};
+unordered_set<uint8_t> ops_16b {0x09, 0x19, 0x29, 0x39};
+
 uint8_t execute_op(State& state)
 {
     uint8_t op = state.read_memory(state.pc);
-    vector<uint8_t> op_code;
+    vector<uint8_t> op_code(0);
     Instruction instruction = ops[0];
 
     if (op == 0xcb) {
@@ -58,8 +62,6 @@ uint8_t execute_op(State& state)
 	}
     }
 
-    set<uint8_t> invalid_ops = {0xd3, 0xdd, 0xdb, 0xe3, 0xe4, 0xeb,
-	                        0xec, 0xed, 0xf4, 0xfc, 0xfd};
     if (invalid_ops.find(op_code[0]) != invalid_ops.end()) {
 	cout << "[WARNING]: Invalid instruction encountered at " << hex << state.pc << ".\n";
     }
@@ -71,7 +73,6 @@ uint8_t execute_op(State& state)
     state.pc += instruction.bytes;
     uint16_t prev_pc = state.pc;
 
-    set<uint8_t> ops_16b {0x09, 0x19, 0x29, 0x39};
     bool is_16_bit = ops_16b.find(op_code[0]) != ops_16b.end();
 
     auto operands = op_functions[instruction.name](state, instruction, op_code);

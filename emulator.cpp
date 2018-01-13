@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 	return 0;
     }
 
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
 	cout << "SDL2 failed to initialize: " << SDL_GetError() << "\n";
 	return 0;
     }
@@ -71,6 +71,7 @@ int main(int argc, char* argv[])
     uint8_t draw_line_counter = 0;
     uint16_t timer_counter = 0;
     uint16_t divider_counter = 0;
+    uint16_t event_counter = 0;
     while (!quit) {
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
@@ -92,9 +93,13 @@ int main(int argc, char* argv[])
 	    draw_line_counter += cycles_executed;
 	    timer_counter += cycles_executed;
 	    divider_counter += cycles_executed;
+	    event_counter += cycles_executed;
  	    if (cycles_to_catch_up < 20) {break;}
 
-	    handle_events(state);
+	    if (event_counter >= 100) {
+	        handle_events(state);
+		event_counter -= 100;
+	    }
 
 	    uint8_t lcdc = state.read_memory(0xff40);
 	    if ((lcdc & 0x80) == 0x80) {

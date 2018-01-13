@@ -80,9 +80,6 @@ void State::load_file_to_rom(string filename)
 
 uint8_t State::read_memory(uint16_t addr)
 {
-    if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
-	cout << "[WARNING]: Invalid memory read from " << hex << this->pc << ".\n";
-    }
 
     uint8_t mbc = this->rom[0x147];
     if (mbc >= 1 && mbc <= 3) {mbc = 1;}
@@ -102,6 +99,9 @@ uint8_t State::read_memory(uint16_t addr)
             return this->ram[0x2000 * effective_ram_bank + addr - 0xa000];
 	}
     } else {
+        if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
+	    cout << "[WARNING]: Invalid memory read from " << hex << this->pc << ".\n";
+        }
         return this->memory[addr];
     }
 }

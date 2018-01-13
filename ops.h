@@ -5,8 +5,9 @@
 
 #include <cstdint>
 #include <map>
-#include <utility>
 #include <string>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 const std::uint8_t FLAG_Z = 0x80;
@@ -16,6 +17,8 @@ const std::uint8_t FLAG_C = 0x10;
 
 typedef std::pair<std::uint16_t, std::uint16_t> (*OpFunction)(State&, Instruction&, std::vector<std::uint8_t>);
 extern std::map<std::string, OpFunction> op_functions;
+extern std::unordered_set<std::uint8_t> invalid_op;
+extern std::unordered_set<std::uint8_t> ops_16b;
 
 std::uint8_t execute_op(State& state);
 bool address_executable(std::uint16_t addr);

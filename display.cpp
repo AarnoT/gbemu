@@ -1,7 +1,6 @@
 #include "display.h"
 #include "state.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -11,7 +10,6 @@
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
-using std::sort;
 using std::vector;
 
 void draw_display_buffer(State& state, SDL_Surface* display_buffer, bool window)
@@ -53,23 +51,14 @@ void draw_display_line(State& state, SDL_Surface* display_buffer, SDL_Surface* d
                 palette1[i] = 255 - 85 * ((obp1 & (3 << (i * 2))) >> (i * 2));
             }
 
-            vector<uint8_t> sprite_ids(40, 0);
+            vector<uint8_t> sprites(40);
 	    for (uint8_t n = 0; n < 40; n++) {
-                sprite_ids[n] = n;
+		sprites[n] = n;
 	    }
-	    std::sort(sprite_ids.begin(), sprite_ids.end(),
-                [&state](uint8_t id1, uint8_t id2) {
-		    uint8_t tile_code1 = state.read_memory(0xfe02 + 4 * id1);
-                    uint8_t tile_code2 = state.read_memory(0xfe02 + 4 * id2);
-                    uint8_t x1 = state.read_memory(0xfe01 + 4 * id1);
-                    uint8_t x2 = state.read_memory(0xfe01 + 4 * id2);
-		    return x1 > x2 || (x1 == x2 && tile_code1 > tile_code2);
-		}
-            );
 
 	    uint8_t sprite_height = (lcdc & 0x4) ? 16 : 8;
 	    uint8_t sprite_counter = 0;
-	    for (uint8_t sprite_id : sprite_ids) {
+	    for (uint8_t sprite_id : sprites) {
 		int16_t sprite_y = (int16_t) state.read_memory(0xfe00 + 4 * sprite_id) - 16;
 		int16_t sprite_x = (int16_t) state.read_memory(0xfe01 + 4 * sprite_id) - 8;
 		uint8_t tile_id = state.read_memory(0xfe02 + 4 * sprite_id);
@@ -139,9 +128,10 @@ void draw_display_line(State& state, SDL_Surface* display_buffer, SDL_Surface* d
 void draw_background_tile(State& state, SDL_Surface* surface, uint32_t tile_num, bool window)
 {
     uint8_t bgp = state.read_memory(0xff47);
-    uint8_t palette[4];
+    uint32_t palette[4];
     for (uint8_t i = 0; i < 4; i++) {
-        palette[i] = 255 - 85 * ((bgp & (3 << (i * 2))) >> (i * 2));
+        uint8_t value = 255 - 85 * ((bgp & (3 << (i * 2))) >> (i * 2));
+	palette[i] = SDL_MapRGB(surface->format, value, value, value);
     }
     uint32_t tile_x = tile_num % 32, tile_y = (tile_num - tile_num % 32) / 32;
     uint32_t* pixels = (uint32_t*) surface->pixels;
@@ -157,8 +147,7 @@ void draw_background_tile(State& state, SDL_Surface* surface, uint32_t tile_num,
                 shade = shade << 1;
 	    }
 	    shade |= (value2 & (1 << j)) >> j;
-            shade = palette[shade];
-            pixels[tile_y * 2048 + i * 128 + tile_x * 8 + 7 - j] = SDL_MapRGB(surface->format, shade, shade, shade);
+            pixels[tile_y * 2048 + i * 128 + tile_x * 8 + 7 - j] = palette[shade];
 	}
     }
 }
