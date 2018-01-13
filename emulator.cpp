@@ -42,7 +42,8 @@ int main(int argc, char* argv[])
 	return 0;
     }
     SDL_Surface* display_surface = SDL_GetWindowSurface(window);
-    SDL_Surface* display_buffer = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
+    SDL_Surface* display_buffer = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
+    SDL_Surface* background_surface = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
     SDL_Surface* window_surface = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
 
     State state;
@@ -105,13 +106,13 @@ int main(int argc, char* argv[])
 	    if ((lcdc & 0x80) == 0x80) {
 		if (draw_line_counter >= 114) {
                     if (state.read_memory(0xff44) == 0) {
-	                draw_display_buffer(state, display_buffer, false);
+	                draw_display_buffer(state, background_surface, false);
 			if (lcdc & 0x20) {
 	                    draw_display_buffer(state, window_surface, true);
 			}
 	            }
  
-		    draw_display_line(state, display_buffer, display_surface, window_surface);
+		    draw_display_line(state, background_surface, display_buffer, window_surface);
 		    draw_line_counter -= 114;
 		    state.write_memory(0xff41, state.read_memory(0xff41) | 0x3);
 
@@ -138,6 +139,7 @@ int main(int argc, char* argv[])
 				|| ((state.read_memory(0xffff) & 0x2) && (lcd_stat & 0x10))) {
 			    state.halt_mode = false;
 			}
+			SDL_BlitScaled(display_buffer, 0, display_surface, 0);
 	                SDL_UpdateWindowSurface(window);
 		    }
                 } else {

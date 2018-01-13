@@ -6,8 +6,8 @@
 
 extern bool quit;
 
-const int SCREEN_WIDTH = 160;
-const int SCREEN_HEIGHT = 144;
+const int SCREEN_WIDTH = 320;
+const int SCREEN_HEIGHT = 288;
 
 int main(int argc, char* argv[]);
 void handle_events(State& state);
