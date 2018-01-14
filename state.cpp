@@ -72,6 +72,9 @@ void State::load_file_to_rom(string filename)
     case 0x04: ram_size = 0x20000; break;
     case 0x05: ram_size = 0x10000; break;
     }
+    uint8_t mbc = tmp_buffer[0x147];
+    if (mbc == 5 || mbc == 6) {ram_size = 0x200;}
+
     if (ram_size != 0) {
         this->ram = new uint8_t[ram_size]{0};
     }
@@ -86,6 +89,7 @@ uint8_t State::read_memory(uint16_t addr)
 
     uint8_t mbc = this->rom[0x147];
     if (mbc >= 1 && mbc <= 3) {mbc = 1;}
+    if (mbc == 5 || mbc == 6) {mbc = 2;}
     if (mbc >= 0xf && mbc <= 0x13) {mbc = 3;}
     if (mbc >= 0x19 && mbc <= 0x1e) {mbc = 5;}
 
@@ -96,6 +100,8 @@ uint8_t State::read_memory(uint16_t addr)
             return this->rom[addr];
 	} else if (mbc == 1) {
             return this->read_mbc1(addr);
+	} else if (mbc == 2 && addr <= 0xa1ff) {
+            return this->read_mbc2(addr);
 	} else if (mbc == 3) {
             return this->read_mbc3(addr);
 	} else if (mbc == 5) {
@@ -121,6 +127,19 @@ uint8_t State::read_mbc1(uint16_t addr)
 	} else {
             uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
             return this->ram[0x2000 * effective_ram_bank + addr - 0xa000];
+	}
+    }
+}
+
+uint8_t State::read_mbc2(uint16_t addr)
+{
+    if (addr >= 0x4000 && addr <= 0x7fff) {
+        return this->rom[0x4000 * this->rom_bank + addr - 0x4000];
+    } else {
+        if (!this->ram_enabled) {
+            return 0xff;
+	} else {
+            return this->ram[addr - 0xa000] & 0xf;
 	}
     }
 }
@@ -170,11 +189,14 @@ void State::write_memory(uint16_t addr, uint8_t value)
 {
     uint8_t mbc = this->rom[0x147];
     if (mbc >= 1 && mbc <= 3) {mbc = 1;}
+    if (mbc == 5 || mbc == 6) {mbc = 2;}
     if (mbc >= 0xf && mbc <= 0x13) {mbc = 3;}
     if (mbc >= 0x19 && mbc <= 0x1e) {mbc = 5;}
 
     if ((addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 1) {
         this->write_mbc1(addr, value);
+    } else if ((addr <= 0x3fff || (addr >= 0xa000 && addr <= 0xa1ff)) && mbc == 2) {
+        this->write_mbc2(addr, value);
     } else if ((addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 3) {
         this->write_mbc3(addr, value);
     } else if ((addr <= 0x5fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 5) {
@@ -210,6 +232,19 @@ void State::write_mbc1(uint16_t addr, uint8_t value)
     } else if (this->ram_enabled && this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
         uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
         this->ram[0x2000 * effective_ram_bank + addr - 0xa000] = value;
+    }
+}
+
+void State::write_mbc2(uint16_t addr, uint8_t value)
+{
+    if (addr <= 0x1fff && !(addr & 0x100)) {
+        this->ram_enabled = value == 0xa;
+    } else if (addr >= 0x2000 && addr <= 0x3fff && (addr & 0x100)) {
+        value &= 0xf;
+	if ((value & 0xf) == 0) {value |= 1;}
+	this->rom_bank = value;
+    } else if (this->ram_enabled && addr >= 0xa000 && addr <= 0xa1ff) {
+        this->ram[addr - 0xa000] = value & 0xf;
     }
 }
 

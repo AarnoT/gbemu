@@ -56,10 +56,12 @@ public:
     void load_file_to_rom(std::string filename);
     std::uint8_t read_memory(std::uint16_t addr);
     std::uint8_t read_mbc1(std::uint16_t addr);
+    std::uint8_t read_mbc2(std::uint16_t addr);
     std::uint8_t read_mbc3(std::uint16_t addr);
     std::uint8_t read_mbc5(std::uint16_t addr);
     void write_memory(std::uint16_t addr, std::uint8_t value);
     void write_mbc1(std::uint16_t addr, std::uint8_t value);
+    void write_mbc2(std::uint16_t addr, std::uint8_t value);
     void write_mbc3(std::uint16_t addr, std::uint8_t value);
     void write_mbc5(std::uint16_t addr, std::uint8_t value);
 private:
