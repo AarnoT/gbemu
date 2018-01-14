@@ -99,9 +99,17 @@ int main(int argc, char* argv[])
 		event_counter -= 100;
 	    }
 
-	    if (draw_line_counter >= 114) {
+	    if (state.read_memory(0xff44) >= 144) {
+		state.write_memory(0xff41, (state.read_memory(0xff41) & ~0x2) | 0x1);
+	    } else if (draw_line_counter >= 63) {
+		state.write_memory(0xff41, state.read_memory(0xff41) & ~0x3);
+            } else if (draw_line_counter >= 20) {
 		state.write_memory(0xff41, state.read_memory(0xff41) | 0x3);
+            } else {
+		state.write_memory(0xff41, (state.read_memory(0xff41) & ~0x1) | 0x2);
+	    }
 
+	    if (draw_line_counter >= 114) {
 	        uint8_t lcdc = state.read_memory(0xff40);
 	        if ((lcdc & 0x80) == 0x80) {
                     if (state.read_memory(0xff44) == 0) {
@@ -141,12 +149,6 @@ int main(int argc, char* argv[])
 		    }
                 } else {
                     state.write_memory(0xff44, 0);
-		}
-	    } else {
-		if (draw_line_counter >= 10 && draw_line_counter < 20) {
-		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x2);
-		} else if (draw_line_counter >= 30 && draw_line_counter < 40) {
-		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x1);
 		}
 	    }
 
