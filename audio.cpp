@@ -171,6 +171,43 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if ((state.read_memory(0xff52) & 2) == 0) {
         this->amp2 = 0;
     }
+
+    uint8_t nr34 = state.read_memory(0xff1e);
+    if (nr34 & 0x80) {
+        nr34 &= ~0x80;
+	state.write_memory(0xff1e, nr34);
+        state.write_memory(0xff52, (state.read_memory(0xff52) | 4));
+
+        this->freq3 = ((state.read_memory(0xff1e) & 0x7) << 8) | state.read_memory(0xff1d);
+        if (this->freq3 != 2048) {
+            this->freq3 = 65536 / (2048 - this->freq3);
+        }
+
+        uint8_t nr31 = state.read_memory(0xff1b);
+	this->sound_timer3 = (256 - nr31) * 4093.75;
+
+	float volume = (state.read_memory(0xff1c) & 0x60) >> 4;
+	if (volume != 0) {
+           this->amp3  = 8196.0 / (1 << (uint8_t) (volume - 1)) / 15;
+	}
+    }
+
+    for (uint8_t i = 0; i < 16; i++) {
+        this->wave_pattern[i * 2] = (state.read_memory(0xff30 + i) & 0xf0) >> 4;
+        this->wave_pattern[i * 2 + 1] = state.read_memory(0xff30 + i) & 0x0f;
+    }
+
+    if (this->sound_timer3 <= cycles) {
+        this->sound_timer3 = 0;
+	if (nr34 & 0x40) {
+            state.write_memory(0xff52, state.read_memory(0xff52) & ~4);
+	}
+    } else {
+        this->sound_timer3 -= cycles;
+    }
+    if ((state.read_memory(0xff52) & 4) == 0 || (state.read_memory(0xff1a) & 0x80) == 0) {
+        this->amp3 = 0;
+    }
 }
 
 double AudioController::create_rect_wave(uint32_t freq, uint32_t amp, float duty_cycle, double sound_counter, int16_t* buf, uint32_t len)
@@ -191,6 +228,23 @@ double AudioController::create_rect_wave(uint32_t freq, uint32_t amp, float duty
     return sound_counter;
 }
 
+void AudioController::repeat_wave_pattern(int16_t* buf, uint32_t len)
+{
+    uint32_t wave_samples = 1;
+    if (this->freq3 != 0) {
+        wave_samples = 1.0 / ((float) this->freq3 / (float) this->spec.freq);
+    }
+    for (uint32_t i = 0; i < len; i++) {
+        if (this->sound_counter3 <= 0x1f && wave_samples != 1) {
+            buf[i] = this->amp3 * this->wave_pattern[this->sound_counter3];
+	} else {
+            buf[i] = 0;
+	}
+        this->sound_counter3++;
+	this->sound_counter3 = this->sound_counter3 % wave_samples;
+    }
+}
+
 void audio_callback(void* data, uint8_t* stream, int len)
 {
     len /= 2;
@@ -199,16 +253,20 @@ void audio_callback(void* data, uint8_t* stream, int len)
 
     int16_t* sound1 = new int16_t[len];
     int16_t* sound2 = new int16_t[len];
+    int16_t* sound3 = new int16_t[len];
     audio->sound_counter1 = audio->create_rect_wave(audio->freq1, audio->amp1, audio->duty_cycle1, audio->sound_counter1, sound1, len);
     audio->sound_counter2 = audio->create_rect_wave(audio->freq2, audio->amp2, audio->duty_cycle2, audio->sound_counter2, sound2, len);
+    audio->repeat_wave_pattern(sound3, len);
 
     for (int i = 0; i < len; i++) {
         if (audio->sound_enabled) {
             s16_stream[i] = 0;
         } else {
-            s16_stream[i] = sound1[i] / 2 + sound2[i] / 2;
+            s16_stream[i] = sound1[i] / 3 + sound2[i] / 3 + sound3[i] / 3;
 	}
     }
+
     delete sound1;
     delete sound2;
+    delete sound3;
 }
