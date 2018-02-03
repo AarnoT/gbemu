@@ -1,4 +1,5 @@
 #include "emulator.h"
+#include "audio.h"
 #include "display.h"
 #include "ops.h"
 #include "state.h"
@@ -73,6 +74,7 @@ int main(int argc, char* argv[])
     uint16_t timer_counter = 0;
     uint16_t divider_counter = 0;
     uint16_t event_counter = 0;
+    uint16_t audio_counter = 0;
     while (!quit) {
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
@@ -96,6 +98,7 @@ int main(int argc, char* argv[])
 	    timer_counter += cycles_executed;
 	    divider_counter += cycles_executed;
 	    event_counter += cycles_executed;
+	    audio_counter += cycles_executed;
  	    if (cycles_to_catch_up < 20) {break;}
 
 	    if (event_counter >= 100) {
@@ -190,6 +193,11 @@ int main(int argc, char* argv[])
                 uint8_t b = keyboard[SDL_SCANCODE_A];
                 uint8_t a = keyboard[SDL_SCANCODE_S];
 		state.write_memory(0xff00, ~((start << 3) | (select << 2) | (b << 1) | a));
+	    }
+
+	    if (audio_counter >= 100) {
+                audio_counter -= 100;
+		audio_controller.update_audio(state, 100);
 	    }
 
 	    handle_interrupts(state);
