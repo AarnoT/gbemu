@@ -81,7 +81,11 @@ uint8_t execute_op(State& state)
     update_flags(state, op_code, operands, is_16_bit); 
     state.instructions_executed++;
 
-    return state.pc == prev_pc ? instruction.cycles : instruction.branch_cycles;
+    if (state.pc != prev_pc && instruction.branch_cycles != 0) {
+        return instruction.branch_cycles;
+    } else {
+        return instruction.cycles;
+    }
 }
 
 bool address_executable(uint16_t addr)
