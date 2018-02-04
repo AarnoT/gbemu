@@ -178,20 +178,22 @@ int main(int argc, char* argv[])
 	    }
 
 	    uint8_t p1 = state.read_memory(0xff00);
-	    if (p1 == 0x20) {
+	    if ((p1 & 0x30) == 0x20) {
                 const uint8_t* keyboard = SDL_GetKeyboardState(0);
                 uint8_t down = keyboard[SDL_SCANCODE_DOWN];
                 uint8_t up = keyboard[SDL_SCANCODE_UP];
                 uint8_t left = keyboard[SDL_SCANCODE_LEFT];
                 uint8_t right = keyboard[SDL_SCANCODE_RIGHT];
-		state.write_memory(0xff00, ~((down << 3) | (up << 2) | (left << 1) | right));
-	    } else if (p1 == 0x10) {
+		state.write_memory(0xff00, (p1 & 0xf0) | (~((down << 3) | (up << 2) | (left << 1) | right) & 0x0f));
+	    } else if ((p1 & 0x30) == 0x10) {
                 const uint8_t* keyboard = SDL_GetKeyboardState(0);
                 uint8_t start = keyboard[SDL_SCANCODE_Z];
                 uint8_t select = keyboard[SDL_SCANCODE_X];
-                uint8_t b = keyboard[SDL_SCANCODE_A];
-                uint8_t a = keyboard[SDL_SCANCODE_S];
-		state.write_memory(0xff00, ~((start << 3) | (select << 2) | (b << 1) | a));
+                uint8_t b = keyboard[SDL_SCANCODE_S];
+                uint8_t a = keyboard[SDL_SCANCODE_A];
+		state.write_memory(0xff00, (p1 & 0xf0) | (~((start << 3) | (select << 2) | (b << 1) | a) & 0x0f));
+	    } else {
+		state.write_memory(0xff00, 0x3f);
 	    }
 
 	    if (audio_counter >= 100) {
