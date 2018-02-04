@@ -142,10 +142,12 @@ int main(int argc, char* argv[])
 			SDL_BlitScaled(display_buffer, 0, display_surface, 0);
 	                SDL_UpdateWindowSurface(window);
 		    }
-                } else if (draw_line_counter > 105) {
-		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x1);
-                } else if (draw_line_counter > 100) {
-		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x2);
+                } else {
+		    if (draw_line_counter >= 10 && draw_line_counter < 20) {
+		        state.write_memory(0xff41, state.read_memory(0xff41) & ~0x2);
+		    } else if (draw_line_counter >= 30 && draw_line_counter < 40) {
+		        state.write_memory(0xff41, state.read_memory(0xff41) & ~0x1);
+		    }
 		}
 	    }
 
