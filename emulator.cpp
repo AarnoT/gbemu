@@ -88,11 +88,6 @@ int main(int argc, char* argv[])
  	        cycles_executed = execute_op(state) / 4;
 	    }
 
-            if (state.read_memory(0xff02) == 0x81) {
-	        state.write_memory(0xff02, 0);
-	        cout << state.read_memory(0xff01);
-	    }
-
  	    cycles_to_catch_up -= cycles_executed;
 	    draw_line_counter += cycles_executed;
 	    timer_counter += cycles_executed;
@@ -119,9 +114,10 @@ int main(int argc, char* argv[])
 		    draw_display_line(state, background_surface, display_buffer, window_surface);
 		    draw_line_counter -= 114;
 		    state.write_memory(0xff41, state.read_memory(0xff41) | 0x3);
+		    uint8_t ly = state.read_memory(0xff44);
 
 		    uint8_t lcd_stat = state.read_memory(0xff41);
-		    bool lyc = state.read_memory(0xff44) == state.read_memory(0xff45);
+		    bool lyc = ly == state.read_memory(0xff45);
                     if ((lcd_stat & 0x8) || (lcd_stat & 0x20) || ((lcd_stat & 0x40) && lyc)) {
 			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x2);
 			if (state.read_memory(0xffff) & 0x2) {
@@ -134,7 +130,7 @@ int main(int argc, char* argv[])
 		        state.write_memory(0xff41, state.read_memory(0xff41) & ~0x4);
 		    }
 
-		    if (state.read_memory(0xff44) == 144) {
+		    if (ly == 144) {
 			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x1);
 			if (lcd_stat & 0x10) {
 			    state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x2);
@@ -146,8 +142,10 @@ int main(int argc, char* argv[])
 			SDL_BlitScaled(display_buffer, 0, display_surface, 0);
 	                SDL_UpdateWindowSurface(window);
 		    }
-                } else {
-		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x3);
+                } else if (draw_line_counter > 105) {
+		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x1);
+                } else if (draw_line_counter > 100) {
+		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x2);
 		}
 	    }
 
@@ -156,37 +154,36 @@ int main(int argc, char* argv[])
 		state.write_memory(0xff04, state.read_memory(0xff04) + 1);
 	    }
 
-	    uint8_t timer_control = state.read_memory(0xff07);
-	    if (timer_control & 0x4) {
-	        uint16_t cycles = 0;
-	        if ((timer_control & 0x3) == 0) {cycles = 1024;}
-	        if ((timer_control & 0x3) == 1) {cycles = 16;}
-	        if ((timer_control & 0x3) == 2) {cycles = 64;}
-	        if ((timer_control & 0x3) == 3) {cycles = 256;}
+            uint8_t timer_control = state.read_memory(0xff07);
+	    uint16_t cycles = 0;
+	    if ((timer_control & 0x3) == 0) {cycles = 1024;}
+	    if ((timer_control & 0x3) == 1) {cycles = 16;}
+	    if ((timer_control & 0x3) == 2) {cycles = 64;}
+	    if ((timer_control & 0x3) == 3) {cycles = 256;}
 
+	    if (timer_control & 0x4 && timer_counter >= cycles) {
 		uint8_t timer = state.read_memory(0xff05);
-		if (timer_counter >= cycles) {
-                    timer_counter -= cycles;
-		    timer++;
-		    if (timer == 0) {
-                        timer = state.read_memory(0xff06);
-			state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x4);
-			if (state.read_memory(0xffff) & 0x4) {
-			    state.halt_mode = false;
-			}
-		    }
-		    state.write_memory(0xff05, timer);
+                timer_counter -= cycles;
+		timer++;
+		if (timer == 0) {
+                    timer = state.read_memory(0xff06);
+		    state.write_memory(0xff0f, state.read_memory(0xff0f) | 0x4);
+		    if (state.read_memory(0xffff) & 0x4) {
+			state.halt_mode = false;
+	            }
 		}
+		state.write_memory(0xff05, timer);
 	    }
 
-	    if (state.read_memory(0xff00) == 0x20) {
+	    uint8_t p1 = state.read_memory(0xff00);
+	    if (p1 == 0x20) {
                 const uint8_t* keyboard = SDL_GetKeyboardState(0);
                 uint8_t down = keyboard[SDL_SCANCODE_DOWN];
                 uint8_t up = keyboard[SDL_SCANCODE_UP];
                 uint8_t left = keyboard[SDL_SCANCODE_LEFT];
                 uint8_t right = keyboard[SDL_SCANCODE_RIGHT];
 		state.write_memory(0xff00, ~((down << 3) | (up << 2) | (left << 1) | right));
-	    } else if (state.read_memory(0xff00) == 0x10) {
+	    } else if (p1 == 0x10) {
                 const uint8_t* keyboard = SDL_GetKeyboardState(0);
                 uint8_t start = keyboard[SDL_SCANCODE_Z];
                 uint8_t select = keyboard[SDL_SCANCODE_X];
@@ -236,10 +233,10 @@ void handle_events(State& state)
 
 void handle_interrupts(State& state)
 {
-    if (!state.interrupts_enabled) {
+    uint8_t IF = state.read_memory(0xff0f);
+    if (!state.interrupts_enabled || (IF & 0x1f) == 0) {
         return;
     }
-    uint8_t IF = state.read_memory(0xff0f);
     uint8_t IE = state.read_memory(0xffff);
     for (uint8_t b = 0; b < 5; b++) {
 	if (IF & (1 << b) && IE & (1 << b)) {

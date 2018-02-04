@@ -1,6 +1,7 @@
 #include "display.h"
 #include "state.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -10,6 +11,8 @@
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
+using std::copy;
+using std::fill_n;
 using std::vector;
 
 void draw_display_buffer(State& state, SDL_Surface* display_buffer, bool window)
@@ -32,13 +35,30 @@ void draw_display_line(State& state, SDL_Surface* display_buffer, SDL_Surface* d
         uint32_t* display_pixels = (uint32_t*) display_surface->pixels;
         uint32_t* window_pixels = (uint32_t*) window_surface->pixels;
 
-        for (uint8_t display_column = 0; display_column < 160; display_column++) {
-            uint32_t value = SDL_MapRGB(display_surface->format, 0xff, 0xff, 0xff);
-	    if ((lcdc & 0x1) != 0) {
-                value = buffer_pixels[(display_row + scroll_y) % 256 * 256 + (display_column + scroll_x) % 256];
+	if ((lcdc & 0x1) != 0) {
+	    int32_t offset = 160 + scroll_x - 256;
+            if (offset <= 0) {
+                copy(
+                    buffer_pixels + (display_row + scroll_y) % 256 * 256 + scroll_x,
+                    buffer_pixels + (display_row + scroll_y) % 256 * 256 + scroll_x + 160,
+                    display_pixels + display_row * 160
+                );
+	    } else {
+                copy(
+                    buffer_pixels + (display_row + scroll_y) % 256 * 256 + scroll_x,
+                    buffer_pixels + (display_row + scroll_y) % 256 * 256 + scroll_x + 160 - offset,
+                    display_pixels + display_row * 160
+                );
+                copy(
+                    buffer_pixels + (display_row + scroll_y) % 256 * 256,
+                    buffer_pixels + (display_row + scroll_y) % 256 * 256 + offset,
+                    display_pixels + display_row * 160 + 160 - offset
+                );
 	    }
-	    display_pixels[display_row*160 + display_column] = value;
-        }
+	} else {
+            fill_n(display_pixels, 160*144, SDL_MapRGB(display_surface->format, 0xff, 0xff, 0xff));
+	}
+
 	if ((lcdc & 0x2) != 0) {
             uint8_t obp0 = state.read_memory(0xff48);
             uint8_t obp1 = state.read_memory(0xff49);
@@ -112,12 +132,15 @@ void draw_display_line(State& state, SDL_Surface* display_buffer, SDL_Surface* d
 	    } else {
                 window_x -= 7;
 	    }
-            for (uint8_t x = window_x; x < 160; x++) {
-                uint32_t value = SDL_MapRGB(display_surface->format, 0xff, 0xff, 0xff);
-	        if ((lcdc & 0x1) != 0) {
-                    value = window_pixels[(display_row - window_y) * 256 + x - window_x];
-		}
-                display_pixels[display_row*160 + x] = value;
+
+	    if ((lcdc & 0x1) != 0) {
+                copy(
+                    window_pixels + (display_row - window_y) % 256 * 256,
+                    window_pixels + (display_row - window_y) % 256 * 256 + 160 - window_x,
+                    display_pixels + display_row * 160 + window_x
+                );
+	    } else {
+                fill_n(display_pixels, 160*144, SDL_MapRGB(display_surface->format, 0xff, 0xff, 0xff));
 	    }
 	}
     }

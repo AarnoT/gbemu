@@ -23,13 +23,13 @@ using std::int64_t;
 using std::cout;
 using std::hex;
 using std::make_pair;
-using std::map;
 using std::pair;
+using std::unordered_map;
 using std::unordered_set;
 using std::string;
 using std::vector;
 
-map<string, OpFunction> op_functions {
+unordered_map<string, OpFunction> op_functions {
     {"NOP", &NOP}, {"STOP", &STOP}, {"JR", &JR}, {"LD", &LD}, {"INC", &INC}, {"DEC", &DEC},
     {"RLCA", &RLCA}, {"RLA", &RLA}, {"DAA", &DAA}, {"SCF", &NOP}, {"ADD", &ADD}, 
     {"RRCA", &RRCA}, {"RRA", &RRA}, {"CPL", &CPL}, {"CCF", &CCF}, {"ADC", &ADC},
@@ -51,14 +51,16 @@ uint8_t execute_op(State& state)
     Instruction instruction = ops[0];
 
     if (op == 0xcb) {
-        op_code.push_back(op);
-	op_code.push_back(state.read_memory(state.pc + 1));
+	op_code.resize(2);
+	op_code[0] = op;
+	op_code[1] = state.read_memory(state.pc + 1);
         instruction = ops_cb[op_code[1]];
     } else {
-        op_code.push_back(op);
         instruction = ops[op];
+	op_code.resize(instruction.bytes);
+	op_code[0] = op;
 	for (uint8_t i = 1; i < instruction.bytes; i++) {
-	    op_code.push_back(state.read_memory(state.pc + i));
+	    op_code[i] = state.read_memory(state.pc + i);
 	}
     }
 
@@ -136,7 +138,7 @@ void update_flag(State& state, uint8_t flag_bit, FlagEffect& effect, bool value)
     }
 }
 
-void update_flags(State& state, vector<uint8_t> op_code,
+void update_flags(State& state, vector<uint8_t>& op_code,
 		  pair<uint16_t, uint16_t> operands, bool is_16_bit)
 {
     uint16_t num1 = operands.first, num2 = operands.second;
@@ -194,7 +196,7 @@ void write_register_pair(State& state, const string& register_name, uint16_t val
     *state.register_pairs[register_name].second = value & 0xff;
 }
 
-uint16_t read_operand(State& state, const string& operand_name, vector<uint8_t> op_code)
+uint16_t read_operand(State& state, const string& operand_name, vector<uint8_t>& op_code)
 {
     uint16_t value = 0;
     if (state.registers.find(operand_name) != state.registers.end()) {
@@ -239,7 +241,7 @@ uint16_t read_operand(State& state, const string& operand_name, vector<uint8_t> 
     return value;
 }
 
-void write_operand(State& state, const string& operand_name, vector<uint8_t> op_code, uint16_t value)
+void write_operand(State& state, const string& operand_name, vector<uint8_t>& op_code, uint16_t value)
 {
     if (state.registers.find(operand_name) != state.registers.end()) {
 	*state.registers[operand_name] = value;
@@ -301,7 +303,7 @@ void push_onto_stack(State& state, uint16_t value)
     state.stack_depth++;
 }
 
-pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = 0, num2 = 0;
     uint16_t value = read_operand(state, instruction.operand2, op_code);
@@ -321,7 +323,7 @@ pair<uint16_t, uint16_t> LD(State& state, Instruction& instruction, vector<uint8
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t value = pop_from_stack(state);
     write_register_pair(state, (const string) instruction.operand1, value);
@@ -329,14 +331,14 @@ pair<uint16_t, uint16_t> POP(State& state, Instruction& instruction, vector<uint
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> PUSH(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t value = read_register_pair(state, (const string) instruction.operand1);
     push_onto_stack(state, value);
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> INC(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> INC(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = 0, num2 = 1;
     num1 = read_operand(state, instruction.operand1, op_code);
@@ -345,7 +347,7 @@ pair<uint16_t, uint16_t> INC(State& state, Instruction& instruction, vector<uint
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> DEC(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> DEC(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = 0, num2 = 1;
     num1 = read_operand(state, instruction.operand1, op_code);
@@ -354,7 +356,7 @@ pair<uint16_t, uint16_t> DEC(State& state, Instruction& instruction, vector<uint
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = state.a, num2 = 0;
     if (state.f & FLAG_C || ((state.f & FLAG_N) == 0 && state.a > 0x99)) {
@@ -368,13 +370,13 @@ pair<uint16_t, uint16_t> DAA(State& state, Instruction& instruction, vector<uint
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> CPL(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> CPL(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     state.a = ~state.a;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t value = 0;
     uint16_t num1 = read_operand(state, instruction.operand1, op_code);
@@ -391,7 +393,7 @@ pair<uint16_t, uint16_t> ADD(State& state, Instruction& instruction, vector<uint
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> ADC(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> ADC(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand2, op_code);
@@ -400,7 +402,7 @@ pair<uint16_t, uint16_t> ADC(State& state, Instruction& instruction, vector<uint
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> SUB(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> SUB(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
@@ -408,7 +410,7 @@ pair<uint16_t, uint16_t> SUB(State& state, Instruction& instruction, vector<uint
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand2, op_code);
@@ -417,35 +419,35 @@ pair<uint16_t, uint16_t> SBC(State& state, Instruction& instruction, vector<uint
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> AND(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> AND(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a &= num2;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> XOR(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> XOR(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a ^= num2;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> OR(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> OR(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     state.a |= num2;
     return make_pair(state.a, 0);
 }
 
-pair<uint16_t, uint16_t> CP(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> CP(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint16_t num1 = state.a;
     uint16_t num2 = read_operand(state, instruction.operand1, op_code);
     return make_pair(num1, num2);
 }
 
-pair<uint16_t, uint16_t> JR(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> JR(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     bool jump = instruction.operand_count == 1;
     jump = jump || check_condition(state, instruction.operand1);
@@ -456,7 +458,7 @@ pair<uint16_t, uint16_t> JR(State& state, Instruction& instruction, vector<uint8
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     bool jump = instruction.operand_count == 1;
     jump = jump || check_condition(state, instruction.operand1);
@@ -471,7 +473,7 @@ pair<uint16_t, uint16_t> JP(State& state, Instruction& instruction, vector<uint8
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     bool jump = instruction.operand_count == 0;
     jump = jump || check_condition(state, instruction.operand1);
@@ -482,7 +484,7 @@ pair<uint16_t, uint16_t> RET(State& state, Instruction& instruction, vector<uint
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RETI(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RETI(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     bool jump = instruction.operand_count == 0;
     jump = jump || check_condition(state, instruction.operand1);
@@ -494,7 +496,7 @@ pair<uint16_t, uint16_t> RETI(State& state, Instruction& instruction, vector<uin
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     bool jump = instruction.operand_count == 1;
     jump = jump || check_condition(state, instruction.operand1);
@@ -506,14 +508,14 @@ pair<uint16_t, uint16_t> CALL(State& state, Instruction& instruction, vector<uin
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RST(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RST(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     push_onto_stack(state, state.pc);
     state.pc = read_operand(state, instruction.operand1, op_code);
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RLCA(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RLCA(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t bit7 = (state.a & 0x80) >> 7;
     if (bit7 != 0) {
@@ -525,7 +527,7 @@ pair<uint16_t, uint16_t> RLCA(State& state, Instruction& instruction, vector<uin
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RLA(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RLA(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t old_a = state.a;
     state.a = (state.a << 1) | ((state.f & FLAG_C) ? 1 : 0);
@@ -537,7 +539,7 @@ pair<uint16_t, uint16_t> RLA(State& state, Instruction& instruction, vector<uint
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RRCA(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RRCA(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t bit0 = (state.a & 1) << 7;
     if (bit0 != 0) {
@@ -549,7 +551,7 @@ pair<uint16_t, uint16_t> RRCA(State& state, Instruction& instruction, vector<uin
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RRA(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RRA(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t old_a = state.a;
     state.a = (state.a >> 1) | ((state.f & FLAG_C) ? 0x80 : 0);
@@ -561,7 +563,7 @@ pair<uint16_t, uint16_t> RRA(State& state, Instruction& instruction, vector<uint
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> RLC(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RLC(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
 
@@ -577,7 +579,7 @@ pair<uint16_t, uint16_t> RLC(State& state, Instruction& instruction, vector<uint
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> RRC(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RRC(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
 
@@ -593,7 +595,7 @@ pair<uint16_t, uint16_t> RRC(State& state, Instruction& instruction, vector<uint
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> RL(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RL(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
     uint8_t old_value = value;
@@ -609,7 +611,7 @@ pair<uint16_t, uint16_t> RL(State& state, Instruction& instruction, vector<uint8
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> RR(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RR(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
     uint8_t old_value = value;
@@ -625,7 +627,7 @@ pair<uint16_t, uint16_t> RR(State& state, Instruction& instruction, vector<uint8
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> SLA(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> SLA(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
 
@@ -640,7 +642,7 @@ pair<uint16_t, uint16_t> SLA(State& state, Instruction& instruction, vector<uint
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> SRA(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> SRA(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
 
@@ -655,7 +657,7 @@ pair<uint16_t, uint16_t> SRA(State& state, Instruction& instruction, vector<uint
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> SRL(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> SRL(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
 
@@ -670,7 +672,7 @@ pair<uint16_t, uint16_t> SRL(State& state, Instruction& instruction, vector<uint
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> SWAP(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> SWAP(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand1, op_code);
     value = (value & 0xf) << 4 | (value & 0xf0) >> 4;
@@ -678,7 +680,7 @@ pair<uint16_t, uint16_t> SWAP(State& state, Instruction& instruction, vector<uin
     return make_pair(value, 0);
 }
 
-pair<uint16_t, uint16_t> BIT(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> BIT(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand2, op_code);
     uint8_t bit = 0;
@@ -690,7 +692,7 @@ pair<uint16_t, uint16_t> BIT(State& state, Instruction& instruction, vector<uint
     }
 }
 
-pair<uint16_t, uint16_t> RES(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> RES(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand2, op_code);
     uint8_t bit = 0;
@@ -700,7 +702,7 @@ pair<uint16_t, uint16_t> RES(State& state, Instruction& instruction, vector<uint
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> SET(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> SET(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     uint8_t value = read_operand(state, instruction.operand2, op_code);
     uint8_t bit = 0;
@@ -710,12 +712,12 @@ pair<uint16_t, uint16_t> SET(State& state, Instruction& instruction, vector<uint
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> NOP(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> NOP(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> CCF(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> CCF(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     if (state.f & FLAG_C) {
 	state.f &= ~FLAG_C;
@@ -725,25 +727,25 @@ pair<uint16_t, uint16_t> CCF(State& state, Instruction& instruction, vector<uint
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> EI(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> EI(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     state.interrupts_enabled = true;
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> DI(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> DI(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     state.interrupts_enabled = false;
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> HALT(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> HALT(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     state.halt_mode = true;
     return make_pair(0, 0);
 }
 
-pair<uint16_t, uint16_t> STOP(State& state, Instruction& instruction, vector<uint8_t> op_code)
+pair<uint16_t, uint16_t> STOP(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
     state.stop_mode = true;
     return make_pair(0, 0);
