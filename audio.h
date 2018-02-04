@@ -16,6 +16,7 @@ public:
     double create_rect_wave(std::uint32_t freq, std::uint32_t amp, float duty_cycle,
 		          double sound_counter, std::int16_t* buf, std::uint32_t len);
     void repeat_wave_pattern(std::int16_t* buf, std::uint32_t len);
+    void create_noise_pattern(std::int16_t* buf, std::uint32_t len);
 private:
     SDL_AudioSpec spec;
     SDL_AudioDeviceID device;
@@ -40,6 +41,14 @@ private:
     std::uint32_t sound_timer3 = 0;
     std::uint8_t wave_pattern[32] = {0};
     std::uint32_t sound_counter3 = 0;
+
+    std::uint16_t freq4 = 0;
+    std::uint16_t amp4 = 0;
+    std::uint16_t envelope_timer4 = 0;
+    std::uint32_t sound_timer4 = 0;
+    std::uint8_t width_mode = 0;
+    std::uint16_t shift_register = 0;
+    std::uint32_t sound_counter4 = 0;
 
     bool sound_enabled = false;
 };

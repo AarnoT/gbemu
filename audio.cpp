@@ -2,6 +2,7 @@
 #include "state.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 
 #include <SDL2/SDL.h>
@@ -10,6 +11,7 @@ using std::int16_t;
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
+using std::rand;
 
 AudioController audio_controller;
 
@@ -208,6 +210,60 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if ((state.read_memory(0xff52) & 4) == 0 || (state.read_memory(0xff1a) & 0x80) == 0) {
         this->amp3 = 0;
     }
+
+    uint8_t nr44 = state.read_memory(0xff23);
+    if (nr44 & 0x80) {
+        nr44 &= ~0x80;
+	state.write_memory(0xff23, nr44);
+        state.write_memory(0xff52, (state.read_memory(0xff52) | 8));
+
+	uint8_t nr43 = state.read_memory(0xff22);
+	float r = nr43 & 0x7;
+	if (r == 0) {r = 0.5;}
+	uint8_t s = (nr43 & 0xf0) >> 4;
+	this->freq4 = (uint32_t) (524288 / r) >> s;
+
+        uint8_t nr41 = state.read_memory(0xff20);
+	this->sound_timer4 = (64 - (nr41 & 0x3f)) * 4093.75;
+
+	this->amp4 = 8196 / 15 * ((state.read_memory(0xff21) & 0xf0) >> 4);
+
+	this->shift_register = rand();
+	this->shift_register &= ~0x8000;
+	this->width_mode = (nr43 & 0x8) ? 7 : 15;
+    }
+
+    uint8_t nr42 = state.read_memory(0xff21);
+    if (this->envelope_timer4 <= cycles && (nr42 & 0x7) != 0 && state.read_memory(0xff52) & 8) {
+	this->envelope_timer4 += 16375 * (nr42 & 0x7);
+	int16_t step_size = 8196.0 / 15;
+	if ((nr42 & 0x8) == 0) {step_size = -step_size;}
+
+        if (this->amp4 < -step_size) {
+	    this->amp4 = 0;
+	} else {
+            this->amp4 += step_size;
+	}
+	if (this->amp4 > 8196) {
+            this->amp4 = 8196;
+	}
+    }
+    if ((nr42 & 0x7) != 0) {
+        this->envelope_timer4 -= cycles;
+    }
+
+    nr44 = state.read_memory(0xff23);
+    if (this->sound_timer4 <= cycles) {
+        this->sound_timer4 = 0;
+	if (nr44 & 0x40) {
+            state.write_memory(0xff52, state.read_memory(0xff52) & ~8);
+	}
+    } else {
+        this->sound_timer4 -= cycles;
+    }
+    if ((state.read_memory(0xff52) & 8) == 0) {
+        this->amp4 = 0;
+    }
 }
 
 double AudioController::create_rect_wave(uint32_t freq, uint32_t amp, float duty_cycle, double sound_counter, int16_t* buf, uint32_t len)
@@ -234,6 +290,8 @@ void AudioController::repeat_wave_pattern(int16_t* buf, uint32_t len)
     if (this->freq3 != 0) {
         wave_samples = 1.0 / ((float) this->freq3 / (float) this->spec.freq);
     }
+    if (wave_samples < 1) {wave_samples = 1;}
+
     for (uint32_t i = 0; i < len; i++) {
         if (this->sound_counter3 <= 0x1f && wave_samples != 1) {
             buf[i] = this->amp3 * this->wave_pattern[this->sound_counter3];
@@ -242,6 +300,36 @@ void AudioController::repeat_wave_pattern(int16_t* buf, uint32_t len)
 	}
         this->sound_counter3++;
 	this->sound_counter3 = this->sound_counter3 % wave_samples;
+    }
+}
+
+void AudioController::create_noise_pattern(int16_t* buf, uint32_t len)
+{
+    uint32_t wave_samples = 1;
+    if (this->freq4 != 0) {
+        wave_samples = 1.0 / ((float) this->freq4 / (float) this->spec.freq);
+    }
+    if (wave_samples < 1) {wave_samples = 1;}
+
+    for (uint32_t i = 0; i < len; i++) {
+        if (this->sound_counter4 == 0) {
+            uint8_t xor_result = ((this->shift_register & 2) >> 1) ^ (this->shift_register & 1);
+	    this->shift_register >>= 1;
+
+	    this->shift_register &= ~(1 << 14);
+	    this->shift_register |= xor_result << 14;
+
+	    if (this->width_mode == 7) {
+	        this->shift_register &= ~(1 << 6);
+	        this->shift_register |= xor_result << 6;
+	    }
+	}
+	uint8_t output_bit = ~(this->shift_register & 1) & 1;
+
+	buf[i] = output_bit * this->amp4;
+
+        this->sound_counter4++;
+	this->sound_counter4 = this->sound_counter4 % wave_samples;
     }
 }
 
@@ -254,19 +342,23 @@ void audio_callback(void* data, uint8_t* stream, int len)
     int16_t* sound1 = new int16_t[len];
     int16_t* sound2 = new int16_t[len];
     int16_t* sound3 = new int16_t[len];
+    int16_t* sound4 = new int16_t[len];
+
     audio->sound_counter1 = audio->create_rect_wave(audio->freq1, audio->amp1, audio->duty_cycle1, audio->sound_counter1, sound1, len);
     audio->sound_counter2 = audio->create_rect_wave(audio->freq2, audio->amp2, audio->duty_cycle2, audio->sound_counter2, sound2, len);
     audio->repeat_wave_pattern(sound3, len);
+    audio->create_noise_pattern(sound4, len);
 
     for (int i = 0; i < len; i++) {
         if (audio->sound_enabled) {
             s16_stream[i] = 0;
         } else {
-            s16_stream[i] = sound1[i] / 3 + sound2[i] / 3 + sound3[i] / 3;
+            s16_stream[i] = sound1[i] / 4 + sound2[i] / 4 + sound3[i] / 4 + sound4[i] / 4;
 	}
     }
 
     delete sound1;
     delete sound2;
     delete sound3;
+    delete sound4;
 }
