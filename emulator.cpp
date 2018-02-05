@@ -44,8 +44,6 @@ int main(int argc, char* argv[])
     }
     SDL_Surface* display_surface = SDL_GetWindowSurface(window);
     SDL_Surface* display_buffer = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
-    SDL_Surface* background_surface = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
-    SDL_Surface* window_surface = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
 
     State state;
     state.load_file_to_rom(argv[1]);
@@ -105,13 +103,10 @@ int main(int argc, char* argv[])
 	    if ((lcdc & 0x80) == 0x80) {
 		if (draw_line_counter >= 114) {
                     if (state.read_memory(0xff44) == 0) {
-	                draw_display_buffer(state, background_surface, false);
-			if (lcdc & 0x20) {
-	                    draw_display_buffer(state, window_surface, true);
-			}
+	                state.update_tile_data();
 	            }
  
-		    draw_display_line(state, background_surface, display_buffer, window_surface);
+		    draw_display_line(state, display_buffer);
 		    draw_line_counter -= 114;
 		    state.write_memory(0xff41, state.read_memory(0xff41) | 0x3);
 		    uint8_t ly = state.read_memory(0xff44);
@@ -125,9 +120,9 @@ int main(int argc, char* argv[])
 			}
 		    }
 		    if (lyc) {
-		        state.write_memory(0xff41, state.read_memory(0xff41) | 0x4);
+		        state.write_memory(0xff41, lcd_stat | 0x4);
 		    } else {
-		        state.write_memory(0xff41, state.read_memory(0xff41) & ~0x4);
+		        state.write_memory(0xff41, lcd_stat & ~0x4);
 		    }
 
 		    if (ly == 144) {

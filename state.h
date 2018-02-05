@@ -29,6 +29,8 @@ public:
     uint8_t rtc_flags = 0;
     uint8_t prev_rtc_latch = 0xff;
 
+    std::uint8_t* tile_data = nullptr;
+
     std::map<std::string, std::uint8_t*> registers {
         {"A", &this->a},
         {"B", &this->b},
@@ -64,6 +66,7 @@ public:
     void write_mbc2(std::uint16_t addr, std::uint8_t value);
     void write_mbc3(std::uint16_t addr, std::uint8_t value);
     void write_mbc5(std::uint16_t addr, std::uint8_t value);
+    void update_tile_data();
 private:
     std::uint8_t* memory = nullptr;
     std::uint8_t* ram = nullptr;
