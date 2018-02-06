@@ -28,8 +28,6 @@ void draw_display_line(State& state, SDL_Surface* display_surface)
         draw_line_window(state, display_surface);
         draw_line_sprites(state, display_surface);
     }
-
-    state.write_memory(0xff44, (state.read_memory(0xff44) + 1) % 154);
 }
 
 void draw_line_background(State& state, SDL_Surface* display_surface)
@@ -161,6 +159,13 @@ void draw_line_sprites(State& state, SDL_Surface* display_surface)
 	}
 
 
+        uint8_t bgp = state.read_memory(0xff47);
+        uint32_t bg_palette[4];
+        for (uint8_t i = 0; i < 4; i++) {
+            uint8_t value = 255 - 85 * ((bgp & (3 << (i * 2))) >> (i * 2));
+            bg_palette[i] = SDL_MapRGB(display_surface->format, value, value, value);
+        }
+
         uint8_t sprite_height = (lcdc & 0x4) ? 16 : 8;
         uint8_t sprite_counter = 0;
         for (uint8_t i = 0; i < 40; i++) {
@@ -195,10 +200,11 @@ void draw_line_sprites(State& state, SDL_Surface* display_surface)
 		    pixel = 7 - pixel;
 	        }
 
+		uint32_t pixel_index = display_row * 160 + sprite_x + i;
 	        uint32_t shade = state.tile_data[tile_index + sprite_row * 8 + pixel];
-	        if (shade != 0) {
+	        if (shade != 0 && ((sprite_attrs & 0x80) == 0 || display_pixels[pixel_index] == bg_palette[0])) {
 		    shade = (sprite_attrs & 0x10) ? palette1[shade] : palette0[shade];
-		    display_pixels[display_row * 160 + sprite_x + i] = shade;
+		    display_pixels[pixel_index] = shade;
 	        }
 	    }
 

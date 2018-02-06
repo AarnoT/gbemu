@@ -99,16 +99,18 @@ int main(int argc, char* argv[])
 		event_counter -= 100;
 	    }
 
-	    uint8_t lcdc = state.read_memory(0xff40);
-	    if ((lcdc & 0x80) == 0x80) {
-		if (draw_line_counter >= 114) {
+	    if (draw_line_counter >= 114) {
+		state.write_memory(0xff41, state.read_memory(0xff41) | 0x3);
+
+	        uint8_t lcdc = state.read_memory(0xff40);
+	        if ((lcdc & 0x80) == 0x80) {
                     if (state.read_memory(0xff44) == 0) {
 	                state.update_tile_data();
 	            }
  
 		    draw_display_line(state, display_buffer);
+                    state.write_memory(0xff44, (state.read_memory(0xff44) + 1) % 154);
 		    draw_line_counter -= 114;
-		    state.write_memory(0xff41, state.read_memory(0xff41) | 0x3);
 		    uint8_t ly = state.read_memory(0xff44);
 
 		    uint8_t lcd_stat = state.read_memory(0xff41);
@@ -138,11 +140,13 @@ int main(int argc, char* argv[])
 	                SDL_UpdateWindowSurface(window);
 		    }
                 } else {
-		    if (draw_line_counter >= 10 && draw_line_counter < 20) {
-		        state.write_memory(0xff41, state.read_memory(0xff41) & ~0x2);
-		    } else if (draw_line_counter >= 30 && draw_line_counter < 40) {
-		        state.write_memory(0xff41, state.read_memory(0xff41) & ~0x1);
-		    }
+                    state.write_memory(0xff44, 0);
+		}
+	    } else {
+		if (draw_line_counter >= 10 && draw_line_counter < 20) {
+		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x2);
+		} else if (draw_line_counter >= 30 && draw_line_counter < 40) {
+		    state.write_memory(0xff41, state.read_memory(0xff41) & ~0x1);
 		}
 	    }
 
