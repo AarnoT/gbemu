@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <tuple>
 #include <vector>
 
 #include <SDL2/SDL.h>
@@ -14,6 +15,10 @@ using std::uint16_t;
 using std::uint32_t;
 using std::copy;
 using std::fill_n;
+using std::get;
+using std::sort;
+using std::tuple;
+using std::make_tuple;
 using std::vector;
 
 void draw_display_line(State& state, SDL_Surface* display_surface)
@@ -133,14 +138,33 @@ void draw_line_sprites(State& state, SDL_Surface* display_surface)
 	    palette1[i] = SDL_MapRGB(display_surface->format, value, value, value);
         }
 
-        vector<uint8_t> sprites(40);
-        for (uint8_t n = 0; n < 40; n++) {
-	    sprites[n] = n;
-        }
+	bool same_tiles = true;
+	for (uint8_t i = 0; i < 40; i++) {
+            uint8_t value = state.read_memory(0xfe02 + i * 4);
+	    if (state.prev_oam_tile_ids[i] != value) {
+                state.prev_oam_tile_ids[i] = value;
+		same_tiles = false;
+	    }
+	}
+
+	if (!same_tiles) {
+            vector<tuple<uint8_t, uint8_t, uint8_t>> tmp_sprites(40);
+	    for (uint8_t i = 0; i < 40; i++) {
+		uint8_t sprite_x = state.read_memory(0xfe01 + i * 4);
+		uint8_t sprite_tile = state.read_memory(0xfe02 + i * 4);
+                tmp_sprites[i] = make_tuple(sprite_x, sprite_tile, i);
+	    }
+	    sort(tmp_sprites.begin(), tmp_sprites.end());
+            for (uint8_t i = 0; i < 40; i++) {
+	        state.sorted_sprites[39 - i] = get<2>(tmp_sprites[i]);
+            }
+	}
+
 
         uint8_t sprite_height = (lcdc & 0x4) ? 16 : 8;
         uint8_t sprite_counter = 0;
-        for (uint8_t sprite_id : sprites) {
+        for (uint8_t i = 0; i < 40; i++) {
+	    uint8_t sprite_id = state.sorted_sprites[i];
 	    int16_t sprite_y = (int16_t) state.read_memory(0xfe00 + 4 * sprite_id) - 16;
 	    int16_t sprite_x = (int16_t) state.read_memory(0xfe01 + 4 * sprite_id) - 8;
 	    uint8_t tile_id = state.read_memory(0xfe02 + 4 * sprite_id);

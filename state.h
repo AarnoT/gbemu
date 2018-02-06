@@ -30,6 +30,8 @@ public:
     uint8_t prev_rtc_latch = 0xff;
 
     std::uint8_t* tile_data = nullptr;
+    std::uint8_t prev_oam_tile_ids[40]{0};
+    std::uint8_t sorted_sprites[40]{0};
 
     std::map<std::string, std::uint8_t*> registers {
         {"A", &this->a},
@@ -48,7 +50,7 @@ public:
         {"AF", {&this->a, &this->f}}
     };
 
-    State(); 
+    State();
     ~State();
     State(const State& state) = delete;
     State& operator=(const State& state) = delete;
