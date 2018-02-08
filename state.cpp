@@ -40,15 +40,17 @@ void State::dump_memory_to_file(string filename)
          ostreambuf_iterator<char>(output_file));
 }
 
-void State::load_file_to_memory(string filename)
+bool State::load_file_to_memory(string filename)
 {
     ifstream memory_state(filename, ifstream::binary);
     copy(istreambuf_iterator<char>(memory_state),
          istreambuf_iterator<char>(),
 	 this->memory);
+
+    return static_cast<bool>(memory_state);
 }
 
-void State::load_file_to_rom(string filename)
+bool State::load_file_to_rom(string filename)
 {
     ifstream rom_file(filename, ifstream::binary);
     char tmp_buffer[0x150];
@@ -83,6 +85,8 @@ void State::load_file_to_rom(string filename)
     copy(istreambuf_iterator<char>(rom_file),
          istreambuf_iterator<char>(),
 	 this->rom);
+
+    return static_cast<bool>(rom_file);
 }
 
 uint8_t State::read_memory(uint16_t addr)

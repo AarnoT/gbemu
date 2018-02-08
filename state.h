@@ -56,8 +56,8 @@ public:
     State& operator=(const State& state) = delete;
 
     void dump_memory_to_file(std::string filename);
-    void load_file_to_memory(std::string filename);
-    void load_file_to_rom(std::string filename);
+    bool load_file_to_memory(std::string filename);
+    bool load_file_to_rom(std::string filename);
     std::uint8_t read_memory(std::uint16_t addr);
     std::uint8_t read_mbc1(std::uint16_t addr);
     std::uint8_t read_mbc2(std::uint16_t addr);

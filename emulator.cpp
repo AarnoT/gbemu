@@ -46,7 +46,10 @@ int main(int argc, char* argv[])
     SDL_Surface* display_buffer = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
 
     State state;
-    state.load_file_to_rom(argv[1]);
+    if (!state.load_file_to_rom(argv[1])) {
+        cout << "Invalid ROM filename.\n";
+	return 0;
+    }
 
     state.a = 0x01; state.f = 0xb0; state.b = 0x00; state.c = 0x13;
     state.d = 0x00; state.e = 0xd8; state.h = 0x01; state.l = 0x4d;
