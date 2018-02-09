@@ -50,6 +50,7 @@ private:
     std::uint16_t shift_register = 0;
     std::uint32_t sound_counter4 = 0;
 
+    std::uint8_t prev_nr52 = 0xff;
     bool sound_enabled = false;
 };
 

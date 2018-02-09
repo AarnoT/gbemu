@@ -42,14 +42,15 @@ AudioController::~AudioController()
 
 void AudioController::update_audio(State& state, uint32_t cycles)
 {
-    this->sound_enabled = (state.read_memory(0xff52) & 0x80) != 0;
+    this->sound_enabled = (state.read_memory(0xff26) & 0x80) != 0;
+    state.write_memory(0xff26, (state.read_memory(0xff26) & 0xf0) | (this->prev_nr52 & 0xf));
 
     uint8_t nr14 = state.read_memory(0xff14);
     if (nr14 & 0x80) {
         uint8_t nr11 = state.read_memory(0xff11);
         nr14 &= ~0x80;
 	state.write_memory(0xff14, nr14);
-        state.write_memory(0xff52, (state.read_memory(0xff52) | 1));
+        state.write_memory(0xff26, (state.read_memory(0xff26) | 1));
         this->freq1 = ((state.read_memory(0xff14) & 0x7) << 8) | state.read_memory(0xff13);
         if (this->freq1 != 2048) {
             this->freq1 = 131072 / (2048 - this->freq1);
@@ -65,7 +66,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     }
 
     uint8_t nr10 = state.read_memory(0xff10);
-    if (this->sweep_timer1 <= cycles && (nr10 & 0x70) != 0 && state.read_memory(0xff52) & 1) {
+    if (this->sweep_timer1 <= cycles && (nr10 & 0x70) != 0 && state.read_memory(0xff26) & 1) {
 	this->sweep_timer1 += ((nr10 & 0x70) >> 4) * 8174.4;
         int16_t freq = ((state.read_memory(0xff14) & 0x7) << 8) | state.read_memory(0xff13);
 	int16_t sweep_step = freq >> (nr10 & 0x7);
@@ -74,10 +75,10 @@ void AudioController::update_audio(State& state, uint32_t cycles)
         freq += sweep_step;
 	if (freq < 0) {
 	    freq = 0;
-            state.write_memory(0xff52, state.read_memory(0xff52) & ~1);
+            state.write_memory(0xff26, state.read_memory(0xff26) & ~1);
 	} else if (freq >= (1 << 11)) {
             freq = 0x7ff;
-            state.write_memory(0xff52, state.read_memory(0xff52) & ~1);
+            state.write_memory(0xff26, state.read_memory(0xff26) & ~1);
 	}
         state.write_memory(0xff14, (freq & 0x700) >> 8);
         state.write_memory(0xff13, freq & 0xff);
@@ -91,7 +92,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     }
 
     uint8_t nr12 = state.read_memory(0xff12);
-    if (this->envelope_timer1 <= cycles && (nr12 & 0x7) != 0 && state.read_memory(0xff52) & 1) {
+    if (this->envelope_timer1 <= cycles && (nr12 & 0x7) != 0 && state.read_memory(0xff26) & 1) {
 	this->envelope_timer1 = 16375 * (nr12 & 0x7);
 	int16_t step_size = 8196.0 / 15;
 	if ((nr12 & 0x8) == 0) {step_size = -step_size;}
@@ -113,12 +114,12 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if (this->sound_timer1 <= cycles) {
         this->sound_timer1 = 0;
 	if (nr14 & 0x40) {
-            state.write_memory(0xff52, state.read_memory(0xff52) & ~1);
+            state.write_memory(0xff26, state.read_memory(0xff26) & ~1);
 	}
     } else {
         this->sound_timer1 -= cycles;
     }
-    if ((state.read_memory(0xff52) & 1) == 0) {
+    if ((state.read_memory(0xff26) & 1) == 0) {
         this->amp1 = 0;
     }
 
@@ -127,7 +128,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
         uint8_t nr21 = state.read_memory(0xff16);
         nr24 &= ~0x80;
 	state.write_memory(0xff19, nr24);
-        state.write_memory(0xff52, (state.read_memory(0xff52) | 2));
+        state.write_memory(0xff26, (state.read_memory(0xff26) | 2));
         this->freq2 = ((state.read_memory(0xff19) & 0x7) << 8) | state.read_memory(0xff18);
         if (this->freq2 != 2048) {
             this->freq2 = 131072 / (2048 - this->freq2);
@@ -143,7 +144,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     }
 
     uint8_t nr22 = state.read_memory(0xff17);
-    if (this->envelope_timer2 <= cycles && (nr22 & 0x7) != 0 && state.read_memory(0xff52) & 2) {
+    if (this->envelope_timer2 <= cycles && (nr22 & 0x7) != 0 && state.read_memory(0xff26) & 2) {
 	this->envelope_timer2 += 16375 * (nr22 & 0x7);
 	int16_t step_size = 8196.0 / 15;
 	if ((nr22 & 0x8) == 0) {step_size = -step_size;}
@@ -165,12 +166,12 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if (this->sound_timer2 <= cycles) {
         this->sound_timer2 = 0;
 	if (nr24 & 0x40) {
-            state.write_memory(0xff52, state.read_memory(0xff52) & ~2);
+            state.write_memory(0xff26, state.read_memory(0xff26) & ~2);
 	}
     } else {
         this->sound_timer2 -= cycles;
     }
-    if ((state.read_memory(0xff52) & 2) == 0) {
+    if ((state.read_memory(0xff26) & 2) == 0) {
         this->amp2 = 0;
     }
 
@@ -178,7 +179,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if (nr34 & 0x80) {
         nr34 &= ~0x80;
 	state.write_memory(0xff1e, nr34);
-        state.write_memory(0xff52, (state.read_memory(0xff52) | 4));
+        state.write_memory(0xff26, (state.read_memory(0xff26) | 4));
 
         this->freq3 = ((state.read_memory(0xff1e) & 0x7) << 8) | state.read_memory(0xff1d);
         if (this->freq3 != 2048) {
@@ -202,12 +203,12 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if (this->sound_timer3 <= cycles) {
         this->sound_timer3 = 0;
 	if (nr34 & 0x40) {
-            state.write_memory(0xff52, state.read_memory(0xff52) & ~4);
+            state.write_memory(0xff26, state.read_memory(0xff26) & ~4);
 	}
     } else {
         this->sound_timer3 -= cycles;
     }
-    if ((state.read_memory(0xff52) & 4) == 0 || (state.read_memory(0xff1a) & 0x80) == 0) {
+    if ((state.read_memory(0xff26) & 4) == 0 || (state.read_memory(0xff1a) & 0x80) == 0) {
         this->amp3 = 0;
     }
 
@@ -215,7 +216,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if (nr44 & 0x80) {
         nr44 &= ~0x80;
 	state.write_memory(0xff23, nr44);
-        state.write_memory(0xff52, (state.read_memory(0xff52) | 8));
+        state.write_memory(0xff26, (state.read_memory(0xff26) | 8));
 
 	uint8_t nr43 = state.read_memory(0xff22);
 	float r = nr43 & 0x7;
@@ -234,7 +235,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     }
 
     uint8_t nr42 = state.read_memory(0xff21);
-    if (this->envelope_timer4 <= cycles && (nr42 & 0x7) != 0 && state.read_memory(0xff52) & 8) {
+    if (this->envelope_timer4 <= cycles && (nr42 & 0x7) != 0 && state.read_memory(0xff26) & 8) {
 	this->envelope_timer4 += 16375 * (nr42 & 0x7);
 	int16_t step_size = 8196.0 / 15;
 	if ((nr42 & 0x8) == 0) {step_size = -step_size;}
@@ -256,14 +257,16 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     if (this->sound_timer4 <= cycles) {
         this->sound_timer4 = 0;
 	if (nr44 & 0x40) {
-            state.write_memory(0xff52, state.read_memory(0xff52) & ~8);
+            state.write_memory(0xff26, state.read_memory(0xff26) & ~8);
 	}
     } else {
         this->sound_timer4 -= cycles;
     }
-    if ((state.read_memory(0xff52) & 8) == 0) {
+    if ((state.read_memory(0xff26) & 8) == 0) {
         this->amp4 = 0;
     }
+
+    this->prev_nr52 = state.read_memory(0xff26);
 }
 
 double AudioController::create_rect_wave(uint32_t freq, uint32_t amp, float duty_cycle, double sound_counter, int16_t* buf, uint32_t len)
@@ -350,7 +353,7 @@ void audio_callback(void* data, uint8_t* stream, int len)
     audio->create_noise_pattern(sound4, len);
 
     for (int i = 0; i < len; i++) {
-        if (audio->sound_enabled) {
+        if (!audio->sound_enabled) {
             s16_stream[i] = 0;
         } else {
             s16_stream[i] = sound1[i] / 4 + sound2[i] / 4 + sound3[i] / 4 + sound4[i] / 4;
