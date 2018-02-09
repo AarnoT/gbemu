@@ -2,7 +2,6 @@
 #include "state.h"
 
 #include <cstdint>
-#include <cstdlib>
 #include <iostream>
 
 #include <SDL2/SDL.h>
@@ -11,7 +10,6 @@ using std::int16_t;
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
-using std::rand;
 
 AudioController audio_controller;
 
@@ -194,6 +192,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
 
         uint8_t nr31 = state.read_memory(0xff1b);
 	this->sound_timer3 = (256 - nr31) * 4093.75;
+	this->sound_counter3 = 0;
 
 	float volume = (state.read_memory(0xff1c) & 0x60) >> 4;
 	if (volume != 0) {
@@ -235,7 +234,7 @@ void AudioController::update_audio(State& state, uint32_t cycles)
 
 	this->amp4 = 8196 / 15 * ((state.read_memory(0xff21) & 0xf0) >> 4);
 
-	this->shift_register = rand();
+	this->shift_register = 0x7fff;
 	this->shift_register &= ~0x8000;
 	this->width_mode = (nr43 & 0x8) ? 7 : 15;
     }
