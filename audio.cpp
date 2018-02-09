@@ -45,6 +45,12 @@ void AudioController::update_audio(State& state, uint32_t cycles)
     this->sound_enabled = (state.read_memory(0xff26) & 0x80) != 0;
     state.write_memory(0xff26, (state.read_memory(0xff26) & 0xf0) | (this->prev_nr52 & 0xf));
 
+    if (!this->sound_enabled) {
+        for (uint16_t addr = 0xff10; addr <= 0xff25; addr++) {
+	    state.write_memory(addr, 0);
+	}
+    }
+
     uint8_t nr14 = state.read_memory(0xff14);
     if (nr14 & 0x80) {
         uint8_t nr11 = state.read_memory(0xff11);
