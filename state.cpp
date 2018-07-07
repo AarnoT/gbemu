@@ -78,6 +78,10 @@ bool State::load_file_to_rom(string filename)
     uint8_t mbc = tmp_buffer[0x147];
     if (mbc == 5 || mbc == 6) {ram_size = 0x200;}
 
+    if (mbc >= 1 && mbc <= 3) {rom_bank = 1;}
+    if (mbc == 5 || mbc == 6) {rom_bank = 1;}
+    if (mbc >= 0xf && mbc <= 0x13) {rom_bank = 1;}
+
     if (ram_size != 0) {
         this->ram = new uint8_t[ram_size]{0};
     }
