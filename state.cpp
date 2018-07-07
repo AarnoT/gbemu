@@ -222,10 +222,10 @@ void State::write_memory(uint16_t addr, uint8_t value)
 void State::write_mbc1(uint16_t addr, uint8_t value)
 {
     if (addr <= 0x1fff) {
-        this->ram_enabled = (value & 0xa) == 0xa;
+        this->ram_enabled = (value & 0xf) == 0xa;
     } else if (addr >= 0x2000 && addr <= 0x3fff) {
         value &= 0x1f;
-	if ((value & 0xf) == 0) {value |= 1;}
+	if ((value & 0x1f) == 0) {value |= 1;}
 	this->rom_bank &= ~0x1f;
 	this->rom_bank |= value;
     } else if (addr >= 0x4000 && addr <= 0x5fff) {
