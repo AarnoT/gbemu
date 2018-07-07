@@ -18,7 +18,9 @@ public:
     bool stop_mode = false;
 
     std::uint16_t rom_bank = 0;
+    std::uint16_t rom_banks = 0;
     std::uint8_t ram_bank = 0;
+    std::uint8_t ram_banks = 0;
     bool ram_enabled = false;
     bool ram_bank_mode = false;
 

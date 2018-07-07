@@ -59,21 +59,21 @@ bool State::load_file_to_rom(string filename)
 
     uint32_t rom_size = tmp_buffer[0x148];
     switch (rom_size) {
-    case 0x52: rom_size = 0x120000; break;
-    case 0x53: rom_size = 0x140000; break;
-    case 0x54: rom_size = 0x180000; break;
-    default: rom_size = 0x8000 << rom_size; break;
+    case 0x52: rom_banks = 72; rom_size = 0x120000; break;
+    case 0x53: rom_banks = 80; rom_size = 0x140000; break;
+    case 0x54: rom_banks = 96; rom_size = 0x180000; break;
+    default: rom_banks = 2 << rom_size; rom_size = 0x8000 << rom_size; break;
     }
     this->rom = new uint8_t[rom_size]{0};
 
     uint32_t ram_size = tmp_buffer[0x149];
     switch (ram_size) {
-    case 0x00: ram_size = 0; break;
-    case 0x01: ram_size = 0x800; break;
-    case 0x02: ram_size = 0x2000; break;
-    case 0x03: ram_size = 0x8000; break;
-    case 0x04: ram_size = 0x20000; break;
-    case 0x05: ram_size = 0x10000; break;
+    case 0x00: ram_banks = 0; ram_size = 0; break;
+    case 0x01: ram_banks = 1; ram_size = 0x800; break;
+    case 0x02: ram_banks = 1; ram_size = 0x2000; break;
+    case 0x03: ram_banks = 4; ram_size = 0x8000; break;
+    case 0x04: ram_banks = 16; ram_size = 0x20000; break;
+    case 0x05: ram_banks = 8; ram_size = 0x10000; break;
     }
     uint8_t mbc = tmp_buffer[0x147];
     if (mbc == 5 || mbc == 6) {ram_size = 0x200;}
@@ -202,6 +202,9 @@ void State::write_memory(uint16_t addr, uint8_t value)
     if (mbc >= 0xf && mbc <= 0x13) {mbc = 3;}
     if (mbc >= 0x19 && mbc <= 0x1e) {mbc = 5;}
 
+    uint16_t prev_rom_bank = rom_bank;
+    uint16_t prev_ram_bank = ram_bank;
+
     if ((addr <= 0x7fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 1) {
         this->write_mbc1(addr, value);
     } else if ((addr <= 0x3fff || (addr >= 0xa000 && addr <= 0xa1ff)) && mbc == 2) {
@@ -216,6 +219,13 @@ void State::write_memory(uint16_t addr, uint8_t value)
         cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
     } else {
         this->memory[addr] = value;
+    }
+
+    if (rom_bank >= rom_banks) {
+        rom_bank = prev_rom_bank;
+    }
+    if (ram_bank >= ram_banks) {
+        ram_bank = prev_ram_bank;
     }
 }
 
