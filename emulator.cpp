@@ -6,8 +6,11 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstddef>
+#include <experimental/filesystem>
 #include <iostream>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -15,7 +18,13 @@
 
 using std::copy;
 using std::cout;
+using std::experimental::filesystem::create_directory;
+using std::error_code;
+using std::experimental::filesystem::filesystem_error;
+using std::experimental::filesystem::is_regular_file;
 using std::pair;
+using std::experimental::filesystem::path;
+using std::size_t;
 using std::string;
 using std::uint8_t;
 using std::uint32_t;
@@ -51,6 +60,19 @@ int main(int argc, char* argv[])
 	return 0;
     }
 
+    string save_file_name = argv[1];
+    save_file_name = "saves/" + path(save_file_name).stem().string() + ".sav";
+
+    try {
+        create_directory("saves");
+	if (is_regular_file(save_file_name)) {
+	    state.load_file_to_memory(save_file_name, "ram");
+	}
+    } catch (const filesystem_error& e) {
+        cout << e.what();
+	return 0;
+    }
+
     state.a = 0x01; state.f = 0xb0; state.b = 0x00; state.c = 0x13;
     state.d = 0x00; state.e = 0xd8; state.h = 0x01; state.l = 0x4d;
 
@@ -76,6 +98,7 @@ int main(int argc, char* argv[])
     uint16_t divider_counter = 0;
     uint16_t event_counter = 0;
     uint16_t audio_counter = 0;
+    uint16_t save_counter = 0;
     while (!quit) {
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
@@ -113,6 +136,13 @@ int main(int argc, char* argv[])
 	    }
 
 	    if (draw_line_counter >= 114) {
+	        save_counter++;
+                if (state.save_pending && save_counter >= 20) {
+		    save_counter = 0;
+		    state.dump_memory_to_file(save_file_name, "ram");
+		    state.save_pending = false;
+		}
+
 	        uint8_t lcdc = state.read_memory(0xff40);
 	        if ((lcdc & 0x80) == 0x80) {
                     if (state.read_memory(0xff44) == 0) {

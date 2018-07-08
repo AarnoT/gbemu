@@ -33,19 +33,38 @@ State::~State()
     if (this->rom != nullptr) {delete this->rom;}
 }
 
-void State::dump_memory_to_file(string filename)
+void State::dump_memory_to_file(string filename, string memory="work ram")
 {
+    uint8_t* mem = nullptr;
+    uint32_t size = 0;
+    if (memory == "work ram") {
+	size = 0x10000;
+	mem = this->memory;
+    } else if (memory == "ram" && ram != nullptr) {
+        size = this->ram_size;
+       	mem = this->ram;
+    } else {
+	return;
+    }
     ofstream output_file(filename, ofstream::binary);
-    copy(this->memory, this->memory + 0x10000,
+    copy(mem, mem + size,
          ostreambuf_iterator<char>(output_file));
 }
 
-bool State::load_file_to_memory(string filename)
+bool State::load_file_to_memory(string filename, string memory="work ram")
 {
+    uint8_t* mem = nullptr;
+    if (memory == "work ram") {
+        mem = this->memory;
+    } else if (memory == "ram" && ram != nullptr) {
+	mem = this->ram;
+    } else {
+	return false;
+    }
     ifstream memory_state(filename, ifstream::binary);
     copy(istreambuf_iterator<char>(memory_state),
          istreambuf_iterator<char>(),
-	 this->memory);
+         mem);
 
     return static_cast<bool>(memory_state);
 }
@@ -66,7 +85,7 @@ bool State::load_file_to_rom(string filename)
     }
     this->rom = new uint8_t[rom_size]{0};
 
-    uint32_t ram_size = tmp_buffer[0x149];
+    ram_size = tmp_buffer[0x149];
     switch (ram_size) {
     case 0x00: ram_banks = 0; ram_size = 0; break;
     case 0x01: ram_banks = 1; ram_size = 0x800; break;
@@ -251,6 +270,7 @@ void State::write_mbc1(uint16_t addr, uint8_t value)
     } else if (this->ram_enabled && this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
         uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
         this->ram[0x2000 * effective_ram_bank + addr - 0xa000] = value;
+	save_pending = true;
     }
 }
 
@@ -264,6 +284,7 @@ void State::write_mbc2(uint16_t addr, uint8_t value)
 	this->rom_bank = value;
     } else if (this->ram_enabled && addr >= 0xa000 && addr <= 0xa1ff) {
         this->ram[addr - 0xa000] = value & 0xf;
+	save_pending = true;
     }
 }
 
@@ -305,6 +326,7 @@ void State::write_mbc3(uint16_t addr, uint8_t value)
 	    }
 	} else if (this->ram != nullptr && this->ram_bank <= 3) {
             this->ram[0x2000 * this->ram_bank + addr - 0xa000] = value;
+	    save_pending = true;
 	}
     }
 }
@@ -323,6 +345,7 @@ void State::write_mbc5(uint16_t addr, uint8_t value)
         this->ram_bank = value & 0x0f;
     } else if (this->ram_enabled && this->ram != nullptr && addr >= 0xa000 && addr <= 0xbfff) {
         this->ram[0x2000 * this->ram_bank + addr - 0xa000] = value;
+	save_pending = true;
     }
 }
 
