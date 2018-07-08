@@ -26,7 +26,8 @@ using std::uint32_t;
 
 State::State() : tile_data(new uint8_t[0x8000]{0}),
                  memory(new uint8_t[0x10000]{0}), 
-                 wram_banks(new uint8_t[0x8000]{0}) {}
+                 wram_banks(new uint8_t[0x8000]{0}),
+                 vram_banks(new uint8_t[0x2000]{0}) {}
 
 State::~State()
 {
@@ -141,6 +142,10 @@ uint8_t State::read_memory(uint16_t addr)
 	}
     } else if (this->cgb && wram_bank != 0 && addr >= 0xd000 && addr <= 0xdfff) {
         return this->wram_banks[wram_bank * 0x1000 + addr - 0xd000];
+    } else if (this->cgb && addr == 0xff4f) {
+        return 0xfe | this->vram_bank;
+    } else if (this->cgb && this->vram_bank == 1 && addr >= 0x8000 && addr <= 0x9fff) {
+        return this->vram_banks[addr - 0x8000];
     } else {
         if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
 	    cout << "[WARNING]: Invalid memory read from " << hex << this->pc << ".\n";
@@ -249,6 +254,13 @@ void State::write_memory(uint16_t addr, uint8_t value)
         copy(dest, dest + 0xa0, this->memory + 0xfe00);
     } else if (this->cgb && addr == 0xff70) {
         this->wram_bank = (value & 7) | 1;
+    } else if (this->cgb && addr == 0xff4f) {
+        if (this->vram_bank != (value & 1)) {
+            update_tile_data();
+	}
+        this->vram_bank = value & 1;
+    } else if (this->cgb && this->vram_bank == 1 && addr >= 0x8000 && addr <= 0x9fff) {
+        this->vram_banks[addr - 0x8000] = value;
     } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
         cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
     } else {
@@ -366,9 +378,10 @@ void State::write_mbc5(uint16_t addr, uint8_t value)
 
 void State::update_tile_data()
 {
+    uint8_t* vram_ptr = (this->vram_bank == 1) ? this->vram_banks : (this->memory + 0x8000);
     for (uint32_t i = 0; i < 0x1000; i++) {
-        uint8_t data1 = this->memory[0x8000 + i * 2];
-        uint8_t data2 = this->memory[0x8000 + i * 2 + 1];
+        uint8_t data1 = vram_ptr[i * 2];
+        uint8_t data2 = vram_ptr[i * 2 + 1];
 
 	for (int8_t n = 7; n >= 0; n--) {
 	    uint8_t pixel = 0;
