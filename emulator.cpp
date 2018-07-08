@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 	return 0;
     }
 
-    state.a = 0x01; state.f = 0xb0; state.b = 0x00; state.c = 0x13;
+    state.a = 0x11; state.f = 0xb0; state.b = 0x00; state.c = 0x13;
     state.d = 0x00; state.e = 0xd8; state.h = 0x01; state.l = 0x4d;
 
     vector<pair<uint16_t, uint8_t>> memory_values = {
