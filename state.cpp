@@ -76,6 +76,8 @@ bool State::load_file_to_rom(string filename)
     rom_file.read(tmp_buffer, 0x150);
     rom_file.seekg(0);
 
+    this->cgb = ((uint8_t) tmp_buffer[0x143]) == 0x80 || ((uint8_t) tmp_buffer[0x143]) == 0xc0;
+
     uint32_t rom_size = tmp_buffer[0x148];
     switch (rom_size) {
     case 0x52: rom_banks = 72; rom_size = 0x120000; break;
