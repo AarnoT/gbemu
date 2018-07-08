@@ -20,6 +20,7 @@ public:
     bool cgb = false;
     bool double_speed = false;
 
+    std::uint8_t wram_bank = 1;
     std::uint32_t ram_size = 0;
     std::uint16_t rom_bank = 0;
     std::uint16_t rom_banks = 0;
@@ -81,5 +82,6 @@ private:
     std::uint8_t* memory = nullptr;
     std::uint8_t* ram = nullptr;
     std::uint8_t* rom = nullptr;
+    std::uint8_t* wram_banks = nullptr;
 };
 

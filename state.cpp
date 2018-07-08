@@ -24,7 +24,9 @@ using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
 
-State::State() : tile_data(new uint8_t[0x8000]{0}), memory(new uint8_t[0x10000]{0}) {}
+State::State() : tile_data(new uint8_t[0x8000]{0}),
+                 memory(new uint8_t[0x10000]{0}), 
+                 wram_banks(new uint8_t[0x8000]{0}) {}
 
 State::~State()
 {
@@ -137,6 +139,8 @@ uint8_t State::read_memory(uint16_t addr)
 	} else if (mbc == 5) {
             return this->read_mbc5(addr);
 	}
+    } else if (this->cgb && wram_bank != 0 && addr >= 0xd000 && addr <= 0xdfff) {
+        return this->wram_banks[wram_bank * 0x1000 + addr - 0xd000];
     } else {
         if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
 	    cout << "[WARNING]: Invalid memory read from " << hex << this->pc << ".\n";
@@ -234,6 +238,8 @@ void State::write_memory(uint16_t addr, uint8_t value)
         this->write_mbc3(addr, value);
     } else if ((addr <= 0x5fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 5) {
         this->write_mbc5(addr, value);
+    } else if (this->cgb && wram_bank != 0 && addr >= 0xd000 && addr <= 0xdfff) {
+        this->wram_banks[wram_bank * 0x1000 + addr - 0xd000] = value;
     } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
         uint8_t* dest = this->memory + (value << 8);
         if (this->ram_enabled && this->ram != nullptr && value >= 0xa0 && value <= 0xbf) {
@@ -241,6 +247,8 @@ void State::write_memory(uint16_t addr, uint8_t value)
             dest = this->ram + 0x2000 * effective_ram_bank + (value << 8) - 0xa000;
 	}
         copy(dest, dest + 0xa0, this->memory + 0xfe00);
+    } else if (this->cgb && addr == 0xff70) {
+        this->wram_bank = (value & 7) | 1;
     } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
         cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
     } else {
