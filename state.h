@@ -18,6 +18,7 @@ public:
     bool stop_mode = false;
     bool save_pending = false;
     bool cgb = false;
+    bool double_speed = false;
 
     std::uint32_t ram_size = 0;
     std::uint16_t rom_bank = 0;

@@ -112,10 +112,11 @@ int main(int argc, char* argv[])
  	        cycles_executed = execute_op(state) / 4;
 	    }
 
- 	    cycles_to_catch_up -= cycles_executed;
+	    uint8_t speed = state.double_speed ? 2 : 1;
+ 	    cycles_to_catch_up -= cycles_executed * speed;
 	    draw_line_counter += cycles_executed;
-	    timer_counter += cycles_executed;
-	    divider_counter += cycles_executed;
+	    timer_counter += cycles_executed * speed;
+	    divider_counter += cycles_executed * speed;
 	    event_counter += cycles_executed;
 	    audio_counter += cycles_executed;
  	    if (cycles_to_catch_up < 20) {break;}
@@ -124,6 +125,9 @@ int main(int argc, char* argv[])
 	        handle_events(state);
 		event_counter -= 100;
 	    }
+
+	    uint8_t speed_reg = state.read_memory(0xff4d);
+	    state.write_memory(0xff4d, speed_reg | (state.double_speed ? 0x80 : 0x0));
 
 	    if (state.read_memory(0xff44) >= 144) {
 		state.write_memory(0xff41, (state.read_memory(0xff41) & ~0x2) | 0x1);
@@ -237,6 +241,10 @@ int main(int argc, char* argv[])
 
 	    handle_interrupts(state);
         }
+	if (state.cgb && state.stop_mode && state.read_memory(0xff4d) & 1) {
+	    state.double_speed = !state.double_speed;
+	    state.write_memory(0xff4d, state.double_speed ? 0x80 : 0x0);
+	}
     }
 
     SDL_DestroyWindow(window);
