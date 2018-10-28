@@ -294,21 +294,32 @@ double AudioController::create_rect_wave(uint32_t freq, uint32_t amp, float duty
 
 void AudioController::repeat_wave_pattern(int16_t* buf, uint32_t len)
 {
-    uint32_t wave_samples = 1;
-    if (this->freq3 != 0) {
-        wave_samples = 1.0 / ((float) this->freq3 / (float) this->spec.freq);
+    if (this->freq3 == 0) {
+        for (uint32_t i = 0; i < len; i++) {
+	    buf[i] = 0;
+	}
+	return;
     }
-    if (wave_samples < 1) {wave_samples = 1;}
+
+    uint32_t arr_size = (double) this->spec.freq / (double) this->freq3;
+    uint32_t wave_samples = arr_size / 32;
+    int16_t* resampled = new int16_t[arr_size]{0};
+
+    for (uint32_t i = 0; i <= 0x1f; i++) {
+        for (uint32_t j = 0; j < wave_samples; j++) {
+            resampled[i] = this->amp3 * this->wave_pattern[i];
+	}
+    }
+    for (uint32_t i = wave_samples * 32; i < arr_size; i++) {
+        resampled[i] = this->amp3 * this->wave_pattern[0x1f];
+    }
 
     for (uint32_t i = 0; i < len; i++) {
-        if (this->sound_counter3 <= 0x1f && wave_samples != 1) {
-            buf[i] = this->amp3 * this->wave_pattern[this->sound_counter3];
-	} else {
-            buf[i] = 0;
-	}
-        this->sound_counter3++;
-	this->sound_counter3 = this->sound_counter3 % wave_samples;
+        buf[i] = resampled[this->sound_counter3 % arr_size];
+        this->sound_counter3 = (this->sound_counter3 + 1) % arr_size;
     }
+
+    delete resampled;
 }
 
 void AudioController::create_noise_pattern(int16_t* buf, uint32_t len)
