@@ -324,11 +324,14 @@ void AudioController::repeat_wave_pattern(int16_t* buf, uint32_t len)
 
 void AudioController::create_noise_pattern(int16_t* buf, uint32_t len)
 {
-    uint32_t wave_samples = 1;
-    if (this->freq4 != 0) {
-        wave_samples = 1.0 / ((float) this->freq4 / (float) this->spec.freq);
+    uint32_t sample_length = (float) this->spec.freq / (float) this->freq4;
+
+    if (this->freq4 == 0 || sample_length == 0) {
+        for (uint32_t i = 0; i < len; i++) {
+	    buf[i] = 0;
+	}
+	return;
     }
-    if (wave_samples < 1) {wave_samples = 1;}
 
     for (uint32_t i = 0; i < len; i++) {
         if (this->sound_counter4 == 0) {
@@ -343,12 +346,10 @@ void AudioController::create_noise_pattern(int16_t* buf, uint32_t len)
 	        this->shift_register |= xor_result << 6;
 	    }
 	}
+
 	uint8_t output_bit = ~(this->shift_register & 1) & 1;
-
-	buf[i] = output_bit * this->amp4;
-
-        this->sound_counter4++;
-	this->sound_counter4 = this->sound_counter4 % wave_samples;
+	buf[i] = this->amp4 * output_bit;
+	this->sound_counter4 = (this->sound_counter4 + 1) % sample_length;
     }
 }
 
