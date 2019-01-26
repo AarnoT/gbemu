@@ -233,7 +233,12 @@ void State::write_memory(uint16_t addr, uint8_t value)
     } else if ((addr <= 0x5fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 5) {
         this->write_mbc5(addr, value);
     } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
-        copy(this->memory + (value << 8), this->memory + (value << 8) + 0x100, this->memory + 0xfe00);
+        uint8_t* dest = this->memory + (value << 8);
+        if (this->ram_enabled && this->ram != nullptr && value >= 0xa0 && value <= 0xbf) {
+            uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
+            dest = this->ram + 0x2000 * effective_ram_bank + (value << 8) - 0xa000;
+	}
+        copy(dest, dest + 0xa0, this->memory + 0xfe00);
     } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
         cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
     } else {
