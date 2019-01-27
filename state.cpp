@@ -157,6 +157,8 @@ uint8_t State::read_memory(uint16_t addr)
         return this->wram_banks[wram_bank * 0x1000 + addr - 0xd000];
     } else if (this->cgb && addr == 0xff4f) {
         return 0xfe | this->vram_bank;
+    } else if (this->cgb && addr == 0xff4d) {
+        return (this->double_speed ? 0x80 : 0) | (this->prepare_double_speed ? 1 : 0);
     } else if (this->cgb && addr == 0xff70) {
         return this->wram_bank;
     } else if (this->cgb && this->vram_bank == 1 && addr >= 0x8000 && addr <= 0x9fff) {
@@ -322,6 +324,8 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	this->memory[0xff53] = (dest + (len % 0x10)) >> 8;
 	this->memory[0xff54] = (dest + (len % 0x10)) && 0xff;
 	this->memory[0xff55] = 0xff;
+    } else if (this->cgb && addr == 0xff4d) {
+        this->prepare_double_speed = value & 0x1;
     } else if (this->cgb && addr == 0xff4f) {
         this->vram_bank = value & 1;
     } else if (this->cgb && addr == 0xff70) {

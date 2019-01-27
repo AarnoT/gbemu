@@ -19,6 +19,7 @@ public:
     bool save_pending = false;
     bool cgb = false;
     bool double_speed = false;
+    bool prepare_double_speed = false;
 
     std::uint8_t vram_bank = 0;
     std::uint8_t wram_bank = 1;

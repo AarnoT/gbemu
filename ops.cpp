@@ -751,6 +751,11 @@ pair<uint16_t, uint16_t> HALT(State& state, Instruction& instruction, vector<uin
 
 pair<uint16_t, uint16_t> STOP(State& state, Instruction& instruction, vector<uint8_t>& op_code)
 {
-    state.stop_mode = true;
+    if (state.prepare_double_speed) {
+        state.prepare_double_speed = false;
+        state.double_speed = true;
+    } else {
+        state.stop_mode = true;
+    }
     return make_pair(0, 0);
 }
