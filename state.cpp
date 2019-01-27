@@ -144,6 +144,8 @@ uint8_t State::read_memory(uint16_t addr)
         return this->wram_banks[wram_bank * 0x1000 + addr - 0xd000];
     } else if (this->cgb && addr == 0xff4f) {
         return 0xfe | this->vram_bank;
+    } else if (this->cgb && addr == 0xff70) {
+        return this->wram_bank;
     } else if (this->cgb && this->vram_bank == 1 && addr >= 0x8000 && addr <= 0x9fff) {
         return this->vram_banks[addr - 0x8000];
     } else {
@@ -243,59 +245,68 @@ void State::write_memory(uint16_t addr, uint8_t value)
         this->write_mbc3(addr, value);
     } else if ((addr <= 0x5fff || (addr >= 0xa000 && addr <= 0xbfff)) && mbc == 5) {
         this->write_mbc5(addr, value);
+    } else if (this->cgb && this->vram_bank == 1 && addr >= 0x8000 && addr <= 0x9fff) {
+        this->vram_banks[addr - 0x8000] = value;
     } else if (this->cgb && addr >= 0xd000 && addr <= 0xdfff) {
         this->wram_banks[wram_bank * 0x1000 + addr - 0xd000] = value;
-    } else if (this->cgb && addr == 0xff45 && (value & 0x7f) != 0) {
-        uint16_t src = ((this->memory[0xff41] << 8 | this->memory[0xff42]) & 0x1ff0) + 0x8000;
-        uint16_t dest = ((this->memory[0xff43] << 8 | this->memory[0xff44]) & 0x1ff0) + 0x8000;
+    } else if (addr == 0xff46 && value <= 0xf1) {
+        uint8_t* src = this->memory + (value << 8);
+        if (this->cgb && this->vram_bank == 1 && value >= 0x80 && value <= 0x9f) {
+	    src = this->vram_banks + (value << 8) - 0x8000;
+	} else if (this->ram_enabled && this->ram != nullptr && value >= 0xa0 && value <= 0xbf) {
+	    uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
+	    src = this->ram + 0x2000 * effective_ram_bank + (value << 8) - 0xa000;
+	}
+	copy(src, src + 0xa0, this->memory + 0xfe00);
+    } else if (this->cgb && addr == 0xff55 && (value & 0x7f) != 0) {
+        uint16_t src = (this->memory[0xff51] << 8 | this->memory[0xff52]) & 0xfff0;
+        uint16_t dest = (this->memory[0xff53] << 8 | this->memory[0xff54]) & 0x1ff0;
 	uint16_t len = ((value & 0x7f) + 1) * 0x10;
 	uint8_t* vram_ptr = (this->vram_bank == 1) ? this->vram_banks : (this->memory + 0x8000);
-        if (src + len >= 0xa000) {
-	    len = 0xa000 - src;
-        }
-	if (src <= 0x7ff0) {
+	uint8_t* mem_ptr = nullptr;
+
+        if (dest + len >= 0x2000) {
+	    len = 0x2000 - dest;
+	}
+
+	if (src <= 0x3ff0) {
+	    if (src + len >= 0x4000) {
+                len = 0x4000 - src;
+	    }
+	    mem_ptr = this->rom + src;
+	} else if (src <= 0x7ff0) {
 	    if (src + len >= 0x8000) {
                 len = 0x8000 - src;
 	    }
-            copy(this->rom + 0x4000 * this->rom_bank + src,
-                 this->rom + 0x4000 * this->rom_bank + src + len, vram_ptr + dest - 0x8000);
-	} else if (src >= 0xa000 && src <= 0xbff0) {
+	    mem_ptr = this->rom + 0x4000 * this->rom_bank + src - 0x4000;
+	} else if (this-ram_enabled && this->ram != nullptr && src >= 0xa000 && src <= 0xbff0) {
 	    if (src + len >= 0xc000) {
                 len = 0xc000 - src;
 	    }
-            copy(this->ram + 0x2000 * this->ram_bank + src - 0xa000,
-                 this->ram + 0x2000 * this->ram_bank + src - 0xa000 + len,
-                 vram_ptr + dest - 0x8000);
+	    mem_ptr = this->ram + 0x2000 * this->ram_bank + src - 0xa000;
 	} else if (src >= 0xc000 && src <= 0xcff0) {
 	    if (src + len >= 0xd000) {
                 len = 0xd000 - src;
 	    }
-            copy(this->memory + src, this->memory + src + len, vram_ptr + dest - 0x8000);
+	    mem_ptr = this->memory + src;
 	} else if (src >= 0xd000 && src <= 0xdff0) {
 	    if (src + len >= 0xe000) {
                 len = 0xe000 - src;
 	    }
-            copy(this->wram_banks + this->wram_bank * 0x1000 + src - 0xd000,
-                 this->wram_banks + this->wram_bank * 0x1000 + src - 0xd000 + len,
-                 vram_ptr + dest - 0x8000);
+	    mem_ptr = this->wram_banks + this->wram_bank * 0x1000 + src - 0xd000;
 	}
-	this->memory[0xff45] = 0xff;
-    } else if (addr == 0xff46 && value >= 0x80 && value <= 0xdf) {
-        uint8_t* dest = this->memory + (value << 8);
-        if (this->ram_enabled && this->ram != nullptr && value >= 0xa0 && value <= 0xbf) {
-            uint8_t effective_ram_bank = this->ram_bank_mode ? this->ram_bank : 0;
-            dest = this->ram + 0x2000 * effective_ram_bank + (value << 8) - 0xa000;
-	} else if (this->cgb && this->vram_bank == 1 && value <= 0x9f) {
-	    dest = this->vram_banks + (value << 8) - 0x8000;
+
+	if (mem_ptr != nullptr) {
+	    copy(mem_ptr, mem_ptr + len, vram_ptr + dest);
 	}
-        copy(dest, dest + 0xa0, this->memory + 0xfe00);
-    } else if (this->cgb && addr == 0xff70) {
-        this->wram_bank = (value & 7) | 1;
+	this->memory[0xff53] = (dest + (len % 0x10)) >> 8;
+	this->memory[0xff54] = (dest + (len % 0x10)) && 0xff;
+	this->memory[0xff55] = 0xff;
     } else if (this->cgb && addr == 0xff4f) {
         this->vram_bank = value & 1;
         update_tile_data();
-    } else if (this->cgb && this->vram_bank == 1 && addr >= 0x8000 && addr <= 0x9fff) {
-        this->vram_banks[addr - 0x8000] = value;
+    } else if (this->cgb && addr == 0xff70) {
+        this->wram_bank = (value & 7) | 1;
     } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
         cout << "[WARNING]: Invalid memory write from " << hex << this->pc << ".\n";
     } else {
