@@ -25,6 +25,7 @@ using std::uint16_t;
 using std::uint32_t;
 
 State::State() : tile_data(new uint8_t[0x8000]{0}),
+                 tile_data2(new uint8_t[0x8000]{0}),
                  memory(new uint8_t[0x10000]{0}), 
                  wram_banks(new uint8_t[0x8000]{0}),
                  vram_banks(new uint8_t[0x2000]{0}) {}
@@ -32,6 +33,10 @@ State::State() : tile_data(new uint8_t[0x8000]{0}),
 State::~State()
 {
     delete this->memory;
+    delete this->tile_data;
+    delete this->tile_data2;
+    delete this->wram_banks;
+    delete this->vram_banks;
     if (this->ram != nullptr) {delete this->ram;}
     if (this->rom != nullptr) {delete this->rom;}
 }
@@ -70,6 +75,14 @@ bool State::load_file_to_memory(string filename, string memory="work ram")
          mem);
 
     return static_cast<bool>(memory_state);
+}
+
+uint8_t State::read_vram_bank(uint16_t addr)
+{
+    if (addr >= 0x2000) {
+        return 0xff;
+    }
+    return this->vram_banks[addr];
 }
 
 bool State::load_file_to_rom(string filename)
@@ -269,6 +282,13 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	    len = 0x2000 - dest;
 	}
 
+	if (!(value & 0x80)) {
+	    this->memory[0xff53] = (dest + (len % 0x10)) >> 8;
+	    this->memory[0xff54] = (dest + (len % 0x10)) && 0xff;
+	    this->memory[0xff55] = 0xff;
+	    return;
+	}
+
 	if (src <= 0x3ff0) {
 	    if (src + len >= 0x4000) {
                 len = 0x4000 - src;
@@ -304,7 +324,6 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	this->memory[0xff55] = 0xff;
     } else if (this->cgb && addr == 0xff4f) {
         this->vram_bank = value & 1;
-        update_tile_data();
     } else if (this->cgb && addr == 0xff70) {
         this->wram_bank = (value & 7) | 1;
     } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {
@@ -424,16 +443,31 @@ void State::write_mbc5(uint16_t addr, uint8_t value)
 
 void State::update_tile_data()
 {
-    uint8_t* vram_ptr = (this->vram_bank == 1) ? this->vram_banks : (this->memory + 0x8000);
     for (uint32_t i = 0; i < 0x1000; i++) {
-        uint8_t data1 = vram_ptr[i * 2];
-        uint8_t data2 = vram_ptr[i * 2 + 1];
+        uint8_t data1 = this->memory[0x8000 + i * 2];
+        uint8_t data2 = this->memory[0x8000 + i * 2 + 1];
 
 	for (int8_t n = 7; n >= 0; n--) {
 	    uint8_t pixel = 0;
             pixel |= (data1 & (1 << n)) >> n << 1;
             pixel |= (data2 & (1 << n)) >> n;
 	    this->tile_data[i * 8 + (7 - n)] = pixel;
+	}
+    }
+
+    if (!this->cgb) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 0x1000; i++) {
+        uint8_t data1 = this->vram_banks[i * 2];
+        uint8_t data2 = this->vram_banks[i * 2 + 1];
+
+	for (int8_t n = 7; n >= 0; n--) {
+	    uint8_t pixel = 0;
+            pixel |= (data1 & (1 << n)) >> n << 1;
+            pixel |= (data2 & (1 << n)) >> n;
+	    this->tile_data2[i * 8 + (7 - n)] = pixel;
 	}
     }
 }

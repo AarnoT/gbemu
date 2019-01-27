@@ -61,7 +61,12 @@ void draw_line_background(State& state, SDL_Surface* display_surface)
             for (uint8_t pixel = 0; pixel < 8; pixel++) {
                 int16_t x_pos = i * 8 + pixel - x_offset;
                 if (x_pos >= 0 && x_pos < 160) {
-                    uint32_t color = palette[state.tile_data[tiles[i] + y_offset * 8 + pixel]];
+		    uint32_t x = first_tile_x + i;
+                    uint32_t tile_num = (display_row + scroll_y) % 256 / 8 * 32 + x % 32;
+                    uint8_t code_area = (lcdc & 0x8) >> 3;
+		    uint8_t attrs = state.read_vram_bank((code_area ? 0x1c00 : 0x1800) + tile_num);
+		    uint8_t* tile_data = ((attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
+                    uint32_t color = palette[tile_data[tiles[i] + y_offset * 8 + pixel]];
                     display_pixels[display_row * 160 + x_pos] = color; 
                 }
             }
@@ -106,7 +111,11 @@ void draw_line_window(State& state, SDL_Surface* display_surface)
 		    if (i * 8 + pixel + window_x >= 160) {
 		        break;
 		    }
-		    uint32_t color = palette[state.tile_data[tiles[i] + (display_row - window_y) % 8 * 8 + pixel]];
+	            uint32_t tile_num = (display_row - window_y) / 8 * 32 + i;
+                    uint8_t code_area = (lcdc & 0x40) >> 6;
+		    uint8_t attrs = state.read_vram_bank((code_area ? 0x1c00 : 0x1800) + tile_num);
+		    uint8_t* tile_data = ((attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
+		    uint32_t color = palette[tile_data[tiles[i] + (display_row - window_y) % 8 * 8 + pixel]];
 		    display_pixels[display_row * 160 + i * 8 + pixel + window_x] = color;
 	        }
 	    }
@@ -201,7 +210,8 @@ void draw_line_sprites(State& state, SDL_Surface* display_surface)
 	        }
 
 		uint32_t pixel_index = display_row * 160 + sprite_x + i;
-	        uint32_t shade = state.tile_data[tile_index + sprite_row * 8 + pixel];
+		uint8_t* tile_data = ((sprite_attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
+	        uint32_t shade = tile_data[tile_index + sprite_row * 8 + pixel];
 	        if (shade != 0 && ((sprite_attrs & 0x80) == 0 || display_pixels[pixel_index] == bg_palette[0])) {
 		    shade = (sprite_attrs & 0x10) ? palette1[shade] : palette0[shade];
 		    display_pixels[pixel_index] = shade;

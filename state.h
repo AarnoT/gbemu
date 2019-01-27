@@ -38,6 +38,7 @@ public:
     uint8_t prev_rtc_latch = 0xff;
 
     std::uint8_t* tile_data = nullptr;
+    std::uint8_t* tile_data2 = nullptr;
     std::uint8_t prev_oam_tile_ids[40]{0};
     std::uint8_t sorted_sprites[40]{0};
 
@@ -68,6 +69,7 @@ public:
     bool load_file_to_memory(std::string filename,
 		             std::string memory);
     bool load_file_to_rom(std::string filename);
+    std::uint8_t read_vram_bank(std::uint16_t addr);
     std::uint8_t read_memory(std::uint16_t addr);
     std::uint8_t read_mbc1(std::uint16_t addr);
     std::uint8_t read_mbc2(std::uint16_t addr);
