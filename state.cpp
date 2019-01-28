@@ -159,6 +159,10 @@ uint8_t State::read_memory(uint16_t addr)
         return 0xfe | this->vram_bank;
     } else if (this->cgb && addr == 0xff4d) {
         return (this->double_speed ? 0x80 : 0) | (this->prepare_double_speed ? 1 : 0);
+    } else if (this->cgb && addr == 0xff69) {
+        return this->bg_palettes[this->memory[0xff68] & 0x3f];
+    } else if (this->cgb && addr == 0xff6b) {
+        return this->obj_palettes[this->memory[0xff6a] & 0x3f];
     } else if (this->cgb && addr == 0xff70) {
         return this->wram_bank;
     } else if (this->cgb && this->vram_bank == 1 && addr >= 0x8000 && addr <= 0x9fff) {
@@ -295,7 +299,7 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	    if (src + len >= 0x4000) {
                 len = 0x4000 - src;
 	    }
-	    mem_ptr = this->rom + src;
+	    mem_ptr = this->memory + src;
 	} else if (src <= 0x7ff0) {
 	    if (src + len >= 0x8000) {
                 len = 0x8000 - src;
@@ -328,6 +332,20 @@ void State::write_memory(uint16_t addr, uint8_t value)
         this->prepare_double_speed = value & 0x1;
     } else if (this->cgb && addr == 0xff4f) {
         this->vram_bank = value & 1;
+    } else if (this->cgb && addr == 0xff69) {
+        uint8_t index = this->memory[0xff68] & 0x3f;
+        this->bg_palettes[index] = value;
+	if (this->memory[0xff68] & 0x80) {
+	    this->memory[0xff68] += 1;
+	    this->memory[0xff68] &= 0x80 | 0x3f;
+	}
+    } else if (this->cgb && addr == 0xff6b) {
+        uint8_t index = this->memory[0xff6a] & 0x3f;
+        this->obj_palettes[index] = value;
+	if (this->memory[0xff6a] & 0x80) {
+	    this->memory[0xff6a] += 1;
+	    this->memory[0xff6a] &= 0x80 | 0x3f;
+	}
     } else if (this->cgb && addr == 0xff70) {
         this->wram_bank = (value & 7) | 1;
     } else if ((addr >= 0xe000 && addr <= 0xfdff) || (addr >= 0xfea0 && addr <= 0xfeff)) {

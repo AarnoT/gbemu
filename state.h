@@ -42,6 +42,8 @@ public:
     std::uint8_t* tile_data2 = nullptr;
     std::uint8_t prev_oam_tile_ids[40]{0};
     std::uint8_t sorted_sprites[40]{0};
+    std::uint8_t bg_palettes[0x40]{0};
+    std::uint8_t obj_palettes[0x40]{0};
 
     std::map<std::string, std::uint8_t*> registers {
         {"A", &this->a},

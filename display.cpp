@@ -46,6 +46,18 @@ void draw_line_background(State& state, SDL_Surface* display_surface)
             palette[i] = SDL_MapRGB(display_surface->format, value, value, value);
         }
 
+        uint32_t palette_cgb[4 * 8];
+        for (uint8_t i = 0; i < 8; i++) {
+	    for (uint8_t j = 0; j < 4; j++) {
+	        uint16_t value = (
+		    (state.bg_palettes[i * 8 + j * 2 + 1] << 8) | state.bg_palettes[i * 8 + j * 2]);
+		uint8_t r = (value & 0x1f) * 8;
+		uint8_t g = ((value & (0x1f << 5)) >> 5) * 8;
+		uint8_t b = (((value & (0x1f << 10)) >> 10)) * 8;
+		palette_cgb[i * 4 + j] = SDL_MapRGB(display_surface->format, r, g, b);
+	    }
+	}
+
         vector<uint16_t> tiles(0);
         uint8_t first_tile_x = scroll_x / 8;
         uint8_t last_tile_x = (scroll_x + 159) / 8;
@@ -66,7 +78,18 @@ void draw_line_background(State& state, SDL_Surface* display_surface)
                     uint8_t code_area = (lcdc & 0x8) >> 3;
 		    uint8_t attrs = state.read_vram_bank((code_area ? 0x1c00 : 0x1800) + tile_num);
 		    uint8_t* tile_data = ((attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
-                    uint32_t color = palette[tile_data[tiles[i] + y_offset * 8 + pixel]];
+		    uint32_t color = 0;
+		    uint32_t shade = (tile_data[tiles[i] + y_offset * 8 + pixel]);
+                    if (shade == 1) {
+		        shade = 2;
+		    } else if (shade == 2) {
+		        shade = 1;
+		    }
+		    if (state.cgb) {
+                        color = palette_cgb[shade + 4 * (attrs & 0x7)];
+		    } else {
+                        color = palette[shade];
+		    }
                     display_pixels[display_row * 160 + x_pos] = color; 
                 }
             }
@@ -92,6 +115,18 @@ void draw_line_window(State& state, SDL_Surface* display_surface)
             palette[i] = SDL_MapRGB(display_surface->format, value, value, value);
         }
 
+        uint32_t palette_cgb[4 * 8];
+        for (uint8_t i = 0; i < 8; i++) {
+	    for (uint8_t j = 0; j < 4; j++) {
+	        uint16_t value = (
+		    (state.bg_palettes[i * 8 + j * 2 + 1] << 8) | state.bg_palettes[i * 8 + j * 2]);
+		uint8_t r = (value & 0x1f) * 8;
+		uint8_t g = ((value & (0x1f << 5)) >> 5) * 8;
+		uint8_t b = (((value & (0x1f << 10)) >> 10)) * 8;
+		palette_cgb[i * 4 + j] = SDL_MapRGB(display_surface->format, r, g, b);
+	    }
+	}
+
         if (window_x <= 7) {
 	    window_x = 0;
         } else {
@@ -115,7 +150,18 @@ void draw_line_window(State& state, SDL_Surface* display_surface)
                     uint8_t code_area = (lcdc & 0x40) >> 6;
 		    uint8_t attrs = state.read_vram_bank((code_area ? 0x1c00 : 0x1800) + tile_num);
 		    uint8_t* tile_data = ((attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
-		    uint32_t color = palette[tile_data[tiles[i] + (display_row - window_y) % 8 * 8 + pixel]];
+		    uint32_t color = 0;
+		    uint32_t shade = tile_data[tiles[i] + (display_row - window_y) % 8 * 8 + pixel];
+                    if (shade == 1) {
+		        shade = 2;
+		    } else if (shade == 2) {
+		        shade = 1;
+		    }
+		    if (state.cgb) {
+                        color = palette_cgb[shade + 4 * (attrs & 0x7)];
+		    } else {
+                        color = palette[shade];
+		    }
 		    display_pixels[display_row * 160 + i * 8 + pixel + window_x] = color;
 	        }
 	    }
@@ -144,6 +190,18 @@ void draw_line_sprites(State& state, SDL_Surface* display_surface)
 	    uint8_t value = 255 - 85 * ((obp1 & (3 << (i * 2))) >> (i * 2));
 	    palette1[i] = SDL_MapRGB(display_surface->format, value, value, value);
         }
+
+        uint32_t palette_cgb[4 * 8];
+        for (uint8_t i = 0; i < 8; i++) {
+	    for (uint8_t j = 0; j < 4; j++) {
+	        uint16_t value = (
+		    (state.obj_palettes[i * 8 + j * 2 + 1] << 8) | state.obj_palettes[i * 8 + j * 2]);
+		uint8_t r = (value & 0x1f) * 8;
+		uint8_t g = ((value & (0x1f << 5)) >> 5) * 8;
+		uint8_t b = (((value & (0x1f << 10)) >> 10)) * 8;
+		palette_cgb[i * 4 + j] = SDL_MapRGB(display_surface->format, r, g, b);
+	    }
+	}
 
 	bool same_tiles = true;
 	for (uint8_t i = 0; i < 40; i++) {
@@ -174,6 +232,18 @@ void draw_line_sprites(State& state, SDL_Surface* display_surface)
             uint8_t value = 255 - 85 * ((bgp & (3 << (i * 2))) >> (i * 2));
             bg_palette[i] = SDL_MapRGB(display_surface->format, value, value, value);
         }
+
+        uint32_t bg_palette_cgb[4 * 8];
+        for (uint8_t i = 0; i < 8; i++) {
+	    for (uint8_t j = 0; j < 4; j++) {
+	        uint16_t value = (
+		    (state.bg_palettes[i * 8 + j * 2 + 1] << 8) | state.bg_palettes[i * 8 + j * 2]);
+		uint8_t r = (value & 0x1f) * 8;
+		uint8_t g = ((value & (0x1f << 5)) >> 5) * 8;
+		uint8_t b = (((value & (0x1f << 10)) >> 10)) * 8;
+		bg_palette_cgb[i * 4 + j] = SDL_MapRGB(display_surface->format, r, g, b);
+	    }
+	}
 
         uint8_t sprite_height = (lcdc & 0x4) ? 16 : 8;
         uint8_t sprite_counter = 0;
@@ -212,7 +282,15 @@ void draw_line_sprites(State& state, SDL_Surface* display_surface)
 		uint32_t pixel_index = display_row * 160 + sprite_x + i;
 		uint8_t* tile_data = ((sprite_attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
 	        uint32_t shade = tile_data[tile_index + sprite_row * 8 + pixel];
-	        if (shade != 0 && ((sprite_attrs & 0x80) == 0 || display_pixels[pixel_index] == bg_palette[0])) {
+                if (shade == 1) {
+		    shade = 2;
+		} else if (shade == 2) {
+		    shade = 1;
+		}
+		if (state.cgb && shade != 0 && (sprite_attrs & 0x80) == 0) {
+                    shade = palette_cgb[shade + 4 * (sprite_attrs & 0x7)];
+		    display_pixels[pixel_index] = shade;
+		} else if (shade != 0 && ((sprite_attrs & 0x80) == 0 || display_pixels[pixel_index] == bg_palette[0])) {
 		    shade = (sprite_attrs & 0x10) ? palette1[shade] : palette0[shade];
 		    display_pixels[pixel_index] = shade;
 	        }
