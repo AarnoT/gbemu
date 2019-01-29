@@ -77,9 +77,17 @@ void draw_line_background(State& state, SDL_Surface* display_surface)
                     uint32_t tile_num = (display_row + scroll_y) % 256 / 8 * 32 + x % 32;
                     uint8_t code_area = (lcdc & 0x8) >> 3;
 		    uint8_t attrs = state.read_vram_bank((code_area ? 0x1c00 : 0x1800) + tile_num);
+		    uint8_t tile_offset = pixel;
+	            if (state.cgb && (attrs & 0x20)) {
+		        tile_offset = 7 - pixel;
+	            }
+		    uint8_t tile_y_offset = y_offset;
+		    if (state.cgb && (attrs & 0x40)) {
+			tile_y_offset = 7 - tile_y_offset;
+		    }
 		    uint8_t* tile_data = ((attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
 		    uint32_t color = 0;
-		    uint32_t shade = (tile_data[tiles[i] + y_offset * 8 + pixel]);
+		    uint32_t shade = (tile_data[tiles[i] + tile_y_offset * 8 + tile_offset]);
                     if (shade == 1) {
 		        shade = 2;
 		    } else if (shade == 2) {
@@ -151,7 +159,15 @@ void draw_line_window(State& state, SDL_Surface* display_surface)
 		    uint8_t attrs = state.read_vram_bank((code_area ? 0x1c00 : 0x1800) + tile_num);
 		    uint8_t* tile_data = ((attrs & 0x8) && state.cgb) ? state.tile_data2 : state.tile_data;
 		    uint32_t color = 0;
-		    uint32_t shade = tile_data[tiles[i] + (display_row - window_y) % 8 * 8 + pixel];
+		    uint8_t tile_offset = pixel;
+	            if (state.cgb && (attrs & 0x20)) {
+		        tile_offset = 7 - pixel;
+	            }
+		    uint8_t tile_y_offset = (display_row - window_y) % 8;
+		    if (state.cgb && (attrs & 0x40)) {
+			tile_y_offset = 7 - tile_y_offset;
+		    }
+		    uint32_t shade = tile_data[tiles[i] + tile_y_offset * 8 + tile_offset];
                     if (shade == 1) {
 		        shade = 2;
 		    } else if (shade == 2) {
