@@ -245,6 +245,30 @@ uint8_t State::read_mbc5(uint16_t addr)
     }
 }
 
+void State::run_hdma()
+{
+    if (this->hdma_len <= 0) {
+        this->memory[0xff55] = 0xff;
+	return;
+    }
+
+    uint32_t len = (this->hdma_len < 0x10) ? this->hdma_len : 0x10;
+    copy(this->hdma_src, this->hdma_src + len, this->hdma_dest);
+    this->hdma_len -= len;
+    this->hdma_src += len;
+    this->hdma_dest += len;
+
+    uint16_t src = (this->memory[0xff51] << 8 | this->memory[0xff52]) & 0xfff0;
+    uint16_t dest = (this->memory[0xff53] << 8 | this->memory[0xff54]) & 0x1ff0;
+    src += len;
+    dest += len;
+    this->memory[0xff51] = (src & 0xfff0) >> 8;
+    this->memory[0xff52] = (src & 0xfff0) && 0xff;
+    this->memory[0xff53] = (dest & 0x1ff0) >> 8;
+    this->memory[0xff54] = (dest & 0x1ff0) && 0xff;
+    this->memory[0xff55] = (this->hdma_len <= 0) ? 0xff : (this->hdma_len / 0x10 - 1);
+}
+
 void State::write_memory(uint16_t addr, uint8_t value)
 {
     uint8_t mbc = this->rom[0x147];
@@ -278,6 +302,11 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	}
 	copy(src, src + 0xa0, this->memory + 0xfe00);
     } else if (this->cgb && addr == 0xff55 && (value & 0x7f) != 0) {
+	if (!(value & 0x80) && !(this->memory[0xff55] & 0x80)) {
+	    this->memory[0xff55] |= 0x80;
+	    return;
+	}
+
         uint16_t src = (this->memory[0xff51] << 8 | this->memory[0xff52]) & 0xfff0;
         uint16_t dest = (this->memory[0xff53] << 8 | this->memory[0xff54]) & 0x1ff0;
 	uint16_t len = ((value & 0x7f) + 1) * 0x10;
@@ -286,13 +315,6 @@ void State::write_memory(uint16_t addr, uint8_t value)
 
         if (dest + len >= 0x2000) {
 	    len = 0x2000 - dest;
-	}
-
-	if (!(value & 0x80)) {
-	    this->memory[0xff53] = (dest + (len % 0x10)) >> 8;
-	    this->memory[0xff54] = (dest + (len % 0x10)) && 0xff;
-	    this->memory[0xff55] = 0xff;
-	    return;
 	}
 
 	if (src <= 0x3ff0) {
@@ -322,12 +344,21 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	    mem_ptr = this->wram_banks + this->wram_bank * 0x1000 + src - 0xd000;
 	}
 
-	if (mem_ptr != nullptr) {
-	    copy(mem_ptr, mem_ptr + len, vram_ptr + dest);
+	if (mem_ptr != nullptr && (value & 0x80)) {
+	    this->hdma_len = len;
+	    this->hdma_src = mem_ptr;
+	    this->hdma_dest = vram_ptr + dest;
+	    this->memory[0xff55] = len / 0x10 - 1;
+	} else if (!(value & 0x80)) {
+	    if (mem_ptr != nullptr) {
+	        copy(mem_ptr, mem_ptr + len, vram_ptr + dest);
+	    }
+	    this->memory[0xff51] = ((src + len) & 0xfff0) >> 8;
+	    this->memory[0xff52] = ((src + len) & 0xfff0) && 0xff;
+	    this->memory[0xff53] = ((dest + len) & 0x1ff0) >> 8;
+	    this->memory[0xff54] = ((dest + len) & 0x1ff0) && 0xff;
+	    this->memory[0xff55] = 0xff;
 	}
-	this->memory[0xff53] = (dest + (len % 0x10)) >> 8;
-	this->memory[0xff54] = (dest + (len % 0x10)) && 0xff;
-	this->memory[0xff55] = 0xff;
     } else if (this->cgb && addr == 0xff4d) {
         this->prepare_double_speed = value & 0x1;
     } else if (this->cgb && addr == 0xff4f) {

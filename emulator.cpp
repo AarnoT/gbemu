@@ -147,6 +147,10 @@ int main(int argc, char* argv[])
 		    state.save_pending = false;
 		}
 
+		if (state.read_memory(0xff44) <= 143 && !(state.read_memory(0xff55) & 0x80)) {
+		    state.run_hdma();
+		}
+
 	        uint8_t lcdc = state.read_memory(0xff40);
 	        if ((lcdc & 0x80) == 0x80) {
                     if (state.read_memory(0xff44) == 0) {

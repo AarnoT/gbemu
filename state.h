@@ -21,6 +21,10 @@ public:
     bool double_speed = false;
     bool prepare_double_speed = false;
 
+    std::uint32_t hdma_len = 0;
+    std::uint8_t* hdma_src = nullptr;
+    std::uint8_t* hdma_dest = nullptr;
+
     std::uint8_t vram_bank = 0;
     std::uint8_t wram_bank = 1;
     std::uint32_t ram_size = 0;
@@ -78,6 +82,7 @@ public:
     std::uint8_t read_mbc2(std::uint16_t addr);
     std::uint8_t read_mbc3(std::uint16_t addr);
     std::uint8_t read_mbc5(std::uint16_t addr);
+    void run_hdma();
     void write_memory(std::uint16_t addr, std::uint8_t value);
     void write_mbc1(std::uint16_t addr, std::uint8_t value);
     void write_mbc2(std::uint16_t addr, std::uint8_t value);
