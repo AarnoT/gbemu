@@ -358,6 +358,7 @@ void State::write_memory(uint16_t addr, uint8_t value)
 	    this->memory[0xff53] = ((dest + len) & 0x1ff0) >> 8;
 	    this->memory[0xff54] = ((dest + len) & 0x1ff0) && 0xff;
 	    this->memory[0xff55] = 0xff;
+	    this->prev_gdma_len = len / 0x10 - 1;
 	}
     } else if (this->cgb && addr == 0xff4d) {
         this->prepare_double_speed = value & 0x1;

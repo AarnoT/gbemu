@@ -44,7 +44,7 @@ unordered_set<uint8_t> invalid_ops = {0xd3, 0xdd, 0xdb, 0xe3, 0xe4, 0xeb,
 	                              0xec, 0xed, 0xf4, 0xfc, 0xfd};
 unordered_set<uint8_t> ops_16b {0x09, 0x19, 0x29, 0x39};
 
-uint8_t execute_op(State& state)
+uint32_t execute_op(State& state)
 {
     uint8_t op = state.read_memory(state.pc);
     vector<uint8_t> op_code(0);
@@ -84,7 +84,10 @@ uint8_t execute_op(State& state)
     if (state.pc != prev_pc && instruction.branch_cycles != 0) {
         return instruction.branch_cycles;
     } else {
-        return instruction.cycles;
+        uint32_t gdma_cycles = 8 * 4 * state.prev_gdma_len;
+	if (state.double_speed) {gdma_cycles *= 2;}
+	state.prev_gdma_len = 0;
+	return instruction.cycles + gdma_cycles;
     }
 }
 

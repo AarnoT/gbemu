@@ -21,6 +21,7 @@ public:
     bool double_speed = false;
     bool prepare_double_speed = false;
 
+    std::uint32_t prev_gdma_len = 0;
     std::uint32_t hdma_len = 0;
     std::uint8_t* hdma_src = nullptr;
     std::uint8_t* hdma_dest = nullptr;

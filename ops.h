@@ -20,7 +20,7 @@ extern std::unordered_map<std::string, OpFunction> op_functions;
 extern std::unordered_set<std::uint8_t> invalid_op;
 extern std::unordered_set<std::uint8_t> ops_16b;
 
-std::uint8_t execute_op(State& state);
+std::uint32_t execute_op(State& state);
 bool address_executable(std::uint16_t addr);
 
 bool check_carry(std::pair<std::uint16_t, std::uint16_t> operands,
