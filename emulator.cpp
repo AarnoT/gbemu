@@ -99,6 +99,9 @@ int main(int argc, char* argv[])
 	current_time_ms = SDL_GetTicks();
 	cycles_to_catch_up += (current_time_ms - last_time_ms) * 1048;
 	last_time_ms = current_time_ms;
+	if (cycles_to_catch_up > 20000) {
+	    cycles_to_catch_up = 20000;
+	}
 	handle_events(state);
 	if ((state.read_memory(0xff00) & 0xf) != 0xf || state.read_memory(0xff0f) & 0x10) {state.stop_mode = false;}
 
